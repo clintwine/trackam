@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 2,
+  "createdAt": "2026-05-03T18:19:01.090Z",
+  "updatedAt": "2026-05-03T18:23:58.446Z",
+  "completedAt": null,
+  "status": "in_progress",
+  "template": "web_app",
+  "projectName": "Trackam",
+  "projectSlug": "trackam",
+  "outputDir": "C:\\Users\\ELITEBOOK\\Desktop\\projects\\scaffolds\\shared_layer\\apps\\trackam",
+  "options": {
+    "githubOwner": null,
+    "githubRepo": "trackam",
+    "githubVisibility": "private",
+    "railwayWorkspace": null,
+    "skipGit": false,
+    "skipGithub": false,
+    "skipRailway": false
+  },
+  "context": {
+    "bootstrapAdminPasswordGenerated": true,
+    "projectName": "Trackam",
+    "projectSlug": "trackam",
+    "packageNames": {
+      "root": "trackam",
+      "backend": "trackam-backend",
+      "frontend": "trackam-frontend"
+    },
+    "localDev": {
+      "runtimeDir": ".scaffold/runtime",
+      "backendPort": 4429,
+      "postgresDatabase": "trackam",
+      "postgresHost": "127.0.0.1",
+      "postgresPort": 6429,
+      "postgresUser": "postgres",
+      "mysqlDatabase": "backyard_trackam",
+      "mysqlHost": "127.0.0.1",
+      "mysqlPort": 3306,
+      "mysqlUser": "bc_trackam",
+      "backendUrl": "http://127.0.0.1:4429",
+      "storageUrlPrefix": "http://127.0.0.1:4429/storage",
+      "frontendPort": 3429,
+      "frontendUrl": "http://127.0.0.1:3429",
+      "frontendApiUrl": "http://127.0.0.1:4429"
+    },
+    "githubOwner": null,
+    "githubRepo": "trackam",
+    "githubRepoFullName": "trackam",
+    "railwayProjectName": "Trackam"
+  },
+  "steps": {
+    "copyTemplate": {
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:19:01.118Z",
+      "completedAt": "2026-05-03T18:19:07.007Z",
+      "lastError": null
+    },
+    "installDependencies": {
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:19:07.018Z",
+      "completedAt": "2026-05-03T18:22:01.625Z",
+      "lastError": null
+    },
+    "setupLocalDatabase": {
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:22:01.717Z",
+      "completedAt": "2026-05-03T18:22:24.400Z",
+      "lastError": null
+    },
+    "runMigrationsAndSeed": {
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:22:24.443Z",
+      "completedAt": "2026-05-03T18:22:28.918Z",
+      "lastError": null
+    },
+    "verifyLocalDevelopment": {
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:22:28.925Z",
+      "completedAt": "2026-05-03T18:22:44.544Z",
+      "lastError": null
+    },
+    "provisionRailway": {
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:22:44.550Z",
+      "completedAt": "2026-05-03T18:23:58.433Z",
+      "lastError": null
+    },
+    "initializeGitRepo": {
+      "status": "in_progress",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:23:58.444Z",
+      "completedAt": null,
+      "lastError": null
+    },
+    "createGithubRepo": {
+      "status": "pending",
+      "attempts": 0,
+      "startedAt": null,
+      "completedAt": null,
+      "lastError": null
+    }
+  },
+  "git": {
+    "defaultBranch": "main",
+    "branches": [
+      "main",
+      "staging"
+    ]
+  },
+  "github": {
+    "owner": null,
+    "repo": "trackam",
+    "fullName": null,
+    "visibility": "private",
+    "remoteUrl": null,
+    "syncedSecrets": [],
+    "syncedVariables": []
+  },
+  "railway": {
+    "projectId": "9a409485-0496-4ec4-9515-6a1aef47e419",
+    "projectName": "Trackam",
+    "workspace": "Jeffrey Onuigbo's Projects",
+    "environments": [
+      {
+        "name": "production",
+        "branch": "main"
+      },
+      {
+        "name": "staging",
+        "branch": "staging"
+      }
+    ],
+    "services": [
+      {
+        "name": "Postgres",
+        "kind": "database",
+        "path": null,
+        "publicDomain": false
+      },
+      {
+        "name": "backend",
+        "kind": "empty",
+        "path": "backend",
+        "publicDomain": true
+      },
+      {
+        "name": "frontend",
+        "kind": "empty",
+        "path": "frontend",
+        "publicDomain": true
+      }
+    ]
+  },
+  "ci": {
+    "provider": "github-actions",
+    "workflowFile": ".github/workflows/railway-deploy.yml",
+    "secrets": [
+      "RAILWAY_API_TOKEN",
+      "BOOTSTRAP_ADMIN_EMAIL",
+      "BOOTSTRAP_ADMIN_PASSWORD"
+    ],
+    "variables": [
+      {
+        "name": "RAILWAY_PROJECT_ID",
+        "valueFrom": "railway.projectId"
+      }
+    ],
+    "branchDeployments": [
+      {
+        "branch": "main",
+        "environment": "production"
+      },
+      {
+        "branch": "staging",
+        "environment": "staging"
+      }
+    ]
+  },
+  "lastError": null
+}

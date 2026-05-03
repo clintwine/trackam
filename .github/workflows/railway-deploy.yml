@@ -1,0 +1,150 @@
+name: Deploy Railway
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+    concurrency:
+      group: migrate-${{ github.ref_name }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Run backend migrations
+        run: railway run --service Postgres --environment $RAILWAY_ENVIRONMENT --project $RAILWAY_PROJECT_ID bash -lc 'DATABASE_URL="$DATABASE_PUBLIC_URL" npm run db:migrate'
+        working-directory: backend
+
+  seed-demo:
+    needs: migrate
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+    concurrency:
+      group: seed-demo-${{ github.ref_name }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        if: github.ref_name == 'staging'
+        run: npm ci
+        working-directory: backend
+
+      - name: Install Railway CLI
+        if: github.ref_name == 'staging'
+        run: npm install -g @railway/cli
+
+      - name: Seed staging demo users
+        if: github.ref_name == 'staging'
+        run: railway run --service Postgres --environment $RAILWAY_ENVIRONMENT --project $RAILWAY_PROJECT_ID bash -lc 'DEMO_SEED_ALLOWED=true DATABASE_URL="$DATABASE_PUBLIC_URL" npm run db:seed:demo'
+        working-directory: backend
+
+  bootstrap-admin:
+    needs:
+      - migrate
+      - seed-demo
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
+      BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+    concurrency:
+      group: bootstrap-admin-${{ github.ref_name }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        if: env.BOOTSTRAP_ADMIN_EMAIL != '' && env.BOOTSTRAP_ADMIN_PASSWORD != ''
+        run: npm ci
+        working-directory: backend
+
+      - name: Install Railway CLI
+        if: env.BOOTSTRAP_ADMIN_EMAIL != '' && env.BOOTSTRAP_ADMIN_PASSWORD != ''
+        run: npm install -g @railway/cli
+
+      - name: Seed bootstrap admin
+        if: env.BOOTSTRAP_ADMIN_EMAIL != '' && env.BOOTSTRAP_ADMIN_PASSWORD != ''
+        run: railway run --service Postgres --environment $RAILWAY_ENVIRONMENT --project $RAILWAY_PROJECT_ID bash -lc 'DATABASE_URL="$DATABASE_PUBLIC_URL" BOOTSTRAP_ADMIN_EMAIL="$BOOTSTRAP_ADMIN_EMAIL" BOOTSTRAP_ADMIN_PASSWORD="$BOOTSTRAP_ADMIN_PASSWORD" npm run db:seed:bootstrap-admin'
+        working-directory: backend
+
+      - name: Note bootstrap admin skip
+        if: env.BOOTSTRAP_ADMIN_EMAIL == '' || env.BOOTSTRAP_ADMIN_PASSWORD == ''
+        run: echo "Bootstrap admin seed skipped because BOOTSTRAP_ADMIN_EMAIL or BOOTSTRAP_ADMIN_PASSWORD is not configured."
+
+  deploy:
+    needs:
+      - migrate
+      - seed-demo
+      - bootstrap-admin
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            path: backend
+          - service: frontend
+            path: frontend
+    env:
+      RAILWAY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+    concurrency:
+      group: deploy-${{ github.ref_name }}-${{ matrix.service }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy ${{ matrix.service }}
+        run: railway up ${{ matrix.path }} --path-as-root --ci --service ${{ matrix.service }} --environment $RAILWAY_ENVIRONMENT --project $RAILWAY_PROJECT_ID

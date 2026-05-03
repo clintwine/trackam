@@ -1,0 +1,7 @@
+docs.zip
+node_modules/
+dist/
+coverage/
+backend/.env
+frontend/.env.local
+.scaffold/runtime/

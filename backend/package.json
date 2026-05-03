@@ -1,0 +1,35 @@
+{
+  "name": "trackam-backend",
+  "version": "1.0.0",
+  "description": "Backend template wired for a local Postgres + JWT stack",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "db:init": "node scripts/initDb.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seedLocal.js",
+    "db:seed:bootstrap-admin": "node scripts/seedBootstrapAdmin.js",
+    "db:seed:demo": "node scripts/seedDemo.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "cookie": "^0.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.10.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "jest": "^29.7.0",
+    "supertest": "^7.1.1"
+  }
+}
