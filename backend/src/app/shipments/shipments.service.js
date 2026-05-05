@@ -1,0 +1,167 @@
+const repo = require("./shipments.repository");
+const routesRepo = require("../routes/routes.repository");
+const ridersRepo = require("../riders/riders.repository");
+const { query } = require("../../core/db/postgres");
+
+const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted"];
+
+async function getSettings(userId) {
+  const result = await query(
+    `SELECT key, value FROM logistics_settings WHERE user_id = $1`,
+    [userId]
+  );
+  const map = {};
+  for (const row of result.rows) map[row.key] = row.value;
+  return {
+    fuelPrice: parseFloat(map.fuel_price_per_litre || "950"),
+    fuelEfficiency: parseFloat(map.fuel_efficiency_multiplier || "0.12"),
+    ghostThresholdHours: parseInt(map.ghost_threshold_hours || "48", 10),
+  };
+}
+
+function computeRiskScore({ distanceKm, vehicleType, ghostRate, totalShipments, hasRecipientPhone }) {
+  let points = 0;
+  const reasons = [];
+
+  // Distance tier
+  if (distanceKm > 300) {
+    points += 40; reasons.push("Very long route (>300km)");
+  } else if (distanceKm > 100) {
+    points += 30; reasons.push("Long route (>100km)");
+  } else if (distanceKm > 25) {
+    points += 20; reasons.push("Medium route (>25km)");
+  } else if (distanceKm >= 15) {
+    points += 10; reasons.push("Short-medium route");
+  }
+
+  // Vehicle-distance mismatch — catches physically wrong assignments
+  if (vehicleType === "bike" && distanceKm > 50) {
+    points += 25; reasons.push("Bike assigned to route >50km");
+  } else if (vehicleType === "tricycle" && distanceKm > 30) {
+    points += 15; reasons.push("Tricycle assigned to route >30km");
+  } else if (vehicleType === "van" && distanceKm > 400) {
+    points += 10; reasons.push("Van on very long route");
+  }
+
+  // Rider reliability
+  const rate = ghostRate || 0;
+  const trips = totalShipments || 0;
+  if (trips === 0) {
+    points += 15; reasons.push("New rider — no delivery history");
+  } else if (rate > 30) {
+    points += 40; reasons.push(`High ghost rate (${rate}%)`);
+  } else if (rate > 20) {
+    points += 30; reasons.push(`Elevated ghost rate (${rate}%)`);
+  } else if (rate > 10) {
+    points += 20; reasons.push(`Moderate ghost rate (${rate}%)`);
+  } else if (rate > 5) {
+    points += 10; reasons.push(`Low ghost rate (${rate}%)`);
+  }
+
+  // Recipient contact reduces risk — someone on the other end can confirm
+  if (hasRecipientPhone) {
+    points -= 10; reasons.push("Recipient contact on file (−10)");
+  }
+
+  const score = Math.max(0, points);
+  const level = score >= 45 ? "high" : score >= 20 ? "medium" : "low";
+  return { level, points: score, reasons };
+}
+
+async function listShipments(userId, filters = {}) {
+  const settings = await getSettings(userId);
+  await repo.flagDelaysAndGhosting(userId, settings.ghostThresholdHours);
+  return repo.list(userId, filters);
+}
+
+async function getShipment(id, userId) {
+  const settings = await getSettings(userId);
+  await repo.flagDelaysAndGhosting(userId, settings.ghostThresholdHours);
+  const shipment = await repo.getById(id, userId);
+  if (!shipment) throw Object.assign(new Error("Shipment not found"), { status: 404 });
+  return shipment;
+}
+
+async function createShipment(userId, body) {
+  const {
+    routeId, riderId, goodsDescription, pickupLocation, deliveryLocation,
+    distanceKm, riderFee = 0, expectedDeliveryDate, notes,
+    recipientName, recipientPhone,
+  } = body;
+
+  if (!goodsDescription || !pickupLocation || !deliveryLocation || !distanceKm) {
+    throw Object.assign(
+      new Error("goodsDescription, pickupLocation, deliveryLocation, and distanceKm are required"),
+      { status: 400 }
+    );
+  }
+
+  const settings = await getSettings(userId);
+  const fuelCostNgn = Math.round(distanceKm * settings.fuelEfficiency * settings.fuelPrice);
+  const fuelCostKobo = fuelCostNgn * 100;
+  const riderFeeKobo = riderFee * 100;
+  const totalCostKobo = fuelCostKobo + riderFeeKobo;
+
+  // Pull full rider profile for risk scoring
+  let rider = null;
+  if (riderId) rider = await ridersRepo.getById(riderId, userId);
+
+  const risk = computeRiskScore({
+    distanceKm,
+    vehicleType: rider?.vehicleType || null,
+    ghostRate: rider?.ghostRate || 0,
+    totalShipments: rider?.totalShipments || 0,
+    hasRecipientPhone: Boolean(recipientPhone),
+  });
+
+  const shipment = await repo.create({
+    userId, routeId, riderId, goodsDescription, pickupLocation, deliveryLocation,
+    distanceKm, riderFee: riderFeeKobo, fuelCost: fuelCostKobo, totalCost: totalCostKobo,
+    riskScore: risk.level, riskScorePoints: risk.points, riskScoreReasons: risk.reasons,
+    expectedDeliveryDate, notes, recipientName, recipientPhone,
+  });
+
+  // Log initial status
+  await query(
+    `INSERT INTO shipment_status_log (shipment_id, old_status, new_status, note)
+     VALUES ($1, NULL, 'pending', 'Shipment created')`,
+    [shipment.id]
+  );
+
+  // Increment route use count if dispatched via a saved route
+  if (routeId) await routesRepo.incrementUseCount(routeId);
+
+  return shipment;
+}
+
+async function updateShipmentStatus(id, userId, body) {
+  const { status, note } = body;
+  if (!status || !VALID_STATUSES.includes(status)) {
+    throw Object.assign(
+      new Error(`status must be one of: ${VALID_STATUSES.join(", ")}`),
+      { status: 400 }
+    );
+  }
+
+  const current = await repo.getById(id, userId);
+  if (!current) throw Object.assign(new Error("Shipment not found"), { status: 404 });
+
+  // Prevent backwards transitions on terminal statuses
+  const terminal = ["delivered", "failed", "ghosted"];
+  if (terminal.includes(current.status)) {
+    throw Object.assign(
+      new Error(`Cannot transition from terminal status '${current.status}'`),
+      { status: 409 }
+    );
+  }
+
+  return repo.updateStatus(id, userId, { newStatus: status, note });
+}
+
+async function getShipmentStatusLog(id, userId) {
+  const shipment = await repo.getById(id, userId);
+  if (!shipment) throw Object.assign(new Error("Shipment not found"), { status: 404 });
+  return repo.getStatusLog(id, userId);
+}
+
+module.exports = { listShipments, getShipment, createShipment, updateShipmentStatus, getShipmentStatusLog };

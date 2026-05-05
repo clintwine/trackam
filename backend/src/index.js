@@ -102,9 +102,16 @@ app.use("/api/settings", require("./app/settings/settings.controller"));
 app.use("/api/devices", rateLimiter, require("./app/devices/devices.controller"));
 app.use("/api/sessions", rateLimiter, require("./app/sessions/sessions.controller"));
 
+// Trackam logistics domain
+app.use("/api/riders", rateLimiter, require("./app/riders/riders.controller"));
+app.use("/api/routes", rateLimiter, require("./app/routes/routes.controller"));
+app.use("/api/shipments", rateLimiter, require("./app/shipments/shipments.controller"));
+app.use("/api/logistics/dashboard", rateLimiter, require("./app/logistics_dashboard/logistics_dashboard.controller"));
+app.use("/api/logistics/settings", rateLimiter, require("./app/logistics_settings/logistics_settings.controller"));
+
 app.use("/", (req, res) => {
   res.send(
-    "Backend API is up. Postgres-backed routes are available under /api/* (users, notifications, events, roles, settings, devices, sessions)."
+    "Trackam backend API. Routes: /api/riders, /api/routes, /api/shipments, /api/logistics/dashboard, /api/logistics/settings"
   );
 });
 

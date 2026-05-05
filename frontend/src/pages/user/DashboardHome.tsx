@@ -1,218 +1,131 @@
 import { useEffect, useState } from "react";
-import {
-  fetchAuthMe,
-  fetchDevices,
-  fetchGlobalSettings,
-  fetchNotifications,
-  fetchSessions,
-  fetchUser,
-  type DeviceItem,
-  type GlobalSettings,
-  type NotificationItem,
-  type SessionItem,
-  type UserProfile,
-} from "@/services/dashboard.api";
-
-type DashboardState = {
-  me: UserProfile | null;
-  notifications: NotificationItem[];
-  devices: DeviceItem[];
-  sessions: SessionItem[];
-  settings: GlobalSettings | null;
-};
-
-const initialState: DashboardState = {
-  me: null,
-  notifications: [],
-  devices: [],
-  sessions: [],
-  settings: null,
-};
+import { Link } from "react-router-dom";
+import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown } from "lucide-react";
+import { dashboardApi, type DashboardSummary, type Shipment } from "@/services/logistics";
+import { formatNaira } from "@/lib/format";
+import { RiskBadge } from "@/components/logistics/StatusBadge";
 
 export default function DashboardHome() {
-  const [state, setState] = useState<DashboardState>(initialState);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [alerts, setAlerts] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const [auth, notifications, devices, sessions, settings] =
-          await Promise.all([
-            fetchAuthMe(),
-            fetchNotifications(),
-            fetchDevices(),
-            fetchSessions(),
-            fetchGlobalSettings(),
-          ]);
-
-        const user = await fetchUser(auth.uid);
-
-        if (!active) return;
-        setState({
-          me: user,
-          notifications,
-          devices,
-          sessions,
-          settings,
-        });
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
+    Promise.all([dashboardApi.summary(), dashboardApi.alerts()])
+      .then(([s, a]) => { setSummary(s); setAlerts(a); })
+      .finally(() => setLoading(false));
   }, []);
 
-  const unreadNotifications = state.notifications.filter((n) => !n.read);
+  if (loading) return <DashboardSkeleton />;
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card p-4 md:col-span-2 animate-pulse space-y-3">
-            <div className="h-4 w-40 rounded-md bg-muted/60" />
-            <div className="h-3 w-64 rounded-md bg-muted/50" />
-            <div className="h-3 w-56 rounded-md bg-muted/40" />
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4 animate-pulse space-y-3">
-            <div className="h-3 w-24 rounded-md bg-muted/60" />
-            <div className="h-3 w-full rounded-md bg-muted/40" />
-            <div className="h-3 w-3/4 rounded-md bg-muted/40" />
-            <div className="h-3 w-2/3 rounded-md bg-muted/40" />
-          </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card p-4 md:col-span-2 animate-pulse space-y-3">
-            <div className="h-4 w-32 rounded-md bg-muted/60" />
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="h-20 rounded-lg bg-muted/40" />
-              <div className="h-20 rounded-lg bg-muted/40" />
-            </div>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4 animate-pulse space-y-3">
-            <div className="h-4 w-40 rounded-md bg-muted/60" />
-            <div className="space-y-2">
-              <div className="h-3 w-full rounded-md bg-muted/40" />
-              <div className="h-3 w-5/6 rounded-md bg-muted/40" />
-              <div className="h-3 w-4/6 rounded-md bg-muted/40" />
-              <div className="h-3 w-3/6 rounded-md bg-muted/40" />
-            </div>
-          </div>
-        </section>
-      </div>
-    );
-  }
+  const s = summary!;
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-4 md:col-span-2">
-          <h2 className="text-sm font-semibold mb-1">
-            Welcome{state.me?.displayName ? `, ${state.me.displayName}` : ""}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            This overview pulls live data from your account and workspace APIs.
-          </p>
-          {state.settings?.supportEmail && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Need help? Contact{" "}
-              <span className="font-medium text-foreground">
-                {state.settings.supportEmail}
-              </span>
-              .
+    <div className="space-y-6 max-w-5xl">
+      {/* Alerts banner */}
+      {alerts.length > 0 && (
+        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
+            <p className="text-sm font-semibold text-orange-800">
+              {alerts.length} shipment{alerts.length !== 1 ? "s" : ""} need attention
             </p>
-          )}
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            At a glance
-          </h3>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">Unread notifications</dt>
-              <dd className="font-semibold">
-                {unreadNotifications.length}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">Devices</dt>
-              <dd className="font-semibold">{state.devices.length}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">Sessions</dt>
-              <dd className="font-semibold">{state.sessions.length}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">Regions</dt>
-              <dd className="font-semibold">
-                {state.settings?.allowedRegions?.length ?? 0}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-4 md:col-span-2">
-          <header className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">Account summary</h3>
-          </header>
-          <div className="grid gap-3 md:grid-cols-2">
-            <article className="rounded-lg border border-border/70 bg-background/40 p-3">
-              <h4 className="text-xs font-semibold">Identity</h4>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {state.me?.email ?? "No email on file"}
-              </p>
-              <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                Roles: {state.me?.roles?.join(", ") || "none"}
-              </p>
-            </article>
-            <article className="rounded-lg border border-border/70 bg-background/40 p-3">
-              <h4 className="text-xs font-semibold">Workspace settings</h4>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Support email: {state.settings?.supportEmail ?? "Not configured"}
-              </p>
-              <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                Allowed regions: {state.settings?.allowedRegions?.join(", ") || "none"}
-              </p>
-            </article>
           </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-4">
-          <header className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">Recent notifications</h3>
-          </header>
-          {state.notifications.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              You&apos;re all caught up.
-            </p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {state.notifications.slice(0, 4).map((n) => (
-                <li
-                  key={n.id}
-                  className="rounded-md bg-background/40 px-3 py-2 hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium truncate">{n.title}</span>
-                    {!n.read && (
-                      <span className="ml-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                    {n.body}
+          <div className="space-y-2">
+            {alerts.slice(0, 3).map((shipment) => (
+              <Link
+                key={shipment.id}
+                to={`/dashboard/shipments/${shipment.id}`}
+                className="flex items-center justify-between rounded-md bg-white border border-orange-100 px-3 py-2 hover:border-orange-300 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-stone-800 truncate">{shipment.goodsDescription}</p>
+                  <p className="text-[11px] text-stone-500 truncate">
+                    {shipment.pickupLocation} → {shipment.deliveryLocation}
                   </p>
-                </li>
-              ))}
-            </ul>
+                </div>
+                <div className="flex items-center gap-2 ml-3 shrink-0">
+                  {shipment.delayFlag && (
+                    <span className="text-[11px] font-medium text-orange-700">Delayed</span>
+                  )}
+                  {shipment.ghostingFlag && (
+                    <span className="text-[11px] font-medium text-red-600">Ghosting risk</span>
+                  )}
+                  <RiskBadge score={shipment.riskScore} />
+                </div>
+              </Link>
+            ))}
+          </div>
+          {alerts.length > 3 && (
+            <Link to="/dashboard/shipments" className="mt-2 block text-[11px] text-orange-700 hover:underline">
+              View all {alerts.length} alerts →
+            </Link>
           )}
         </div>
-      </section>
+      )}
+
+      {/* Today */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">Today</p>
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard label="Pending pickup" value={s.today.pending} icon={<Package className="h-4 w-4 text-stone-400" />} />
+          <StatCard label="In transit" value={s.today.inTransit} icon={<Truck className="h-4 w-4 text-blue-400" />} highlight={s.today.inTransit > 0} />
+          <StatCard label="Delivered" value={s.today.delivered} icon={<CheckCircle2 className="h-4 w-4 text-green-500" />} />
+        </div>
+      </div>
+
+      {/* This month */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">This month</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Total shipments" value={s.month.totalShipments} />
+          <StatCard label="Logistics spend" value={formatNaira(s.month.totalCostKobo)} icon={<TrendingDown className="h-4 w-4 text-stone-400" />} />
+          <StatCard label="Ghosted" value={s.month.ghostedCount} icon={<Ghost className="h-4 w-4 text-orange-400" />} danger={s.month.ghostedCount > 0} />
+          <StatCard label="Ghost rate" value={`${s.month.ghostRate}%`} danger={s.month.ghostRate > 10} />
+        </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Link to="/dashboard/shipments" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 h-8 text-xs font-medium text-foreground hover:bg-secondary transition-colors shadow-xs">
+          <Package className="h-3.5 w-3.5" /> All shipments
+        </Link>
+        <Link to="/dashboard/riders" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 h-8 text-xs font-medium text-foreground hover:bg-secondary transition-colors shadow-xs">
+          Manage riders
+        </Link>
+        <Link to="/dashboard/routes" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 h-8 text-xs font-medium text-foreground hover:bg-secondary transition-colors shadow-xs">
+          Set up routes
+        </Link>
+      </div>
     </div>
   );
 }
 
+function StatCard({ label, value, icon, highlight, danger }: {
+  label: string; value: string | number; icon?: React.ReactNode; highlight?: boolean; danger?: boolean;
+}) {
+  return (
+    <div className={[
+      "rounded-lg border bg-white p-4 shadow-xs",
+      danger ? "border-red-200" : highlight ? "border-blue-200" : "border-border",
+    ].join(" ")}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] text-muted-foreground">{label}</p>
+        {icon}
+      </div>
+      <p className={["text-xl font-semibold", danger ? "text-red-600" : "text-foreground"].join(" ")}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 max-w-5xl animate-pulse">
+      <div className="h-28 rounded-lg bg-stone-100" />
+      <div className="grid grid-cols-3 gap-3">{[0,1,2].map(i=><div key={i} className="h-20 rounded-lg bg-stone-100"/>)}</div>
+      <div className="grid grid-cols-4 gap-3">{[0,1,2,3].map(i=><div key={i} className="h-20 rounded-lg bg-stone-100"/>)}</div>
+    </div>
+  );
+}

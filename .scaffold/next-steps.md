@@ -11,5 +11,6 @@
 - Ensure `RAILWAY_API_TOKEN` is available before GitHub provisioning.
 - `BOOTSTRAP_ADMIN_EMAIL` is scaffold-managed for this app.
 - `BOOTSTRAP_ADMIN_PASSWORD` is scaffold-managed for this app.
+- Confirm GitHub Actions are enabled for `Jeffreyon/trackam`.
 - Review the generated Railway project, environment mapping, and backend variables before the first deploy.
 - Fresh Railway installs require `/install?token=3e6ebef7248c9bf7854a0b741506f73c36b1956a5abde8a1` until `APP_INSTALLED=true` is set.

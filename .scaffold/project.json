@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "createdAt": "2026-05-03T18:19:01.090Z",
-  "updatedAt": "2026-05-03T18:23:58.446Z",
-  "completedAt": null,
-  "status": "in_progress",
+  "updatedAt": "2026-05-03T18:24:48.823Z",
+  "completedAt": "2026-05-03T18:24:48.822Z",
+  "status": "completed",
   "template": "web_app",
   "projectName": "Trackam",
   "projectSlug": "trackam",
@@ -92,17 +92,17 @@
       "lastError": null
     },
     "initializeGitRepo": {
-      "status": "in_progress",
+      "status": "completed",
       "attempts": 1,
       "startedAt": "2026-05-03T18:23:58.444Z",
-      "completedAt": null,
+      "completedAt": "2026-05-03T18:24:02.403Z",
       "lastError": null
     },
     "createGithubRepo": {
-      "status": "pending",
-      "attempts": 0,
-      "startedAt": null,
-      "completedAt": null,
+      "status": "completed",
+      "attempts": 1,
+      "startedAt": "2026-05-03T18:24:02.407Z",
+      "completedAt": "2026-05-03T18:24:48.819Z",
       "lastError": null
     }
   },
@@ -114,13 +114,19 @@
     ]
   },
   "github": {
-    "owner": null,
+    "owner": "Jeffreyon",
     "repo": "trackam",
-    "fullName": null,
+    "fullName": "Jeffreyon/trackam",
     "visibility": "private",
-    "remoteUrl": null,
-    "syncedSecrets": [],
-    "syncedVariables": []
+    "remoteUrl": "https://github.com/Jeffreyon/trackam.git",
+    "syncedSecrets": [
+      "RAILWAY_API_TOKEN",
+      "BOOTSTRAP_ADMIN_EMAIL",
+      "BOOTSTRAP_ADMIN_PASSWORD"
+    ],
+    "syncedVariables": [
+      "RAILWAY_PROJECT_ID"
+    ]
   },
   "railway": {
     "projectId": "9a409485-0496-4ec4-9515-6a1aef47e419",
