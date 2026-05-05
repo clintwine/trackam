@@ -11,7 +11,7 @@ router.use(localAuthMiddleware);
 router.get("/summary", asyncHandler(async (req, res) => {
   const userId = req.user.uid;
 
-  const [today, month, alerts] = await Promise.all([
+  const [today, month, alerts, exposure] = await Promise.all([
     query(
       `SELECT
          COUNT(*) FILTER (WHERE status = 'pending') AS pending,
@@ -27,11 +27,11 @@ router.get("/summary", asyncHandler(async (req, res) => {
          COUNT(*) FILTER (WHERE status = 'ghosted') AS ghosted_count,
          COUNT(*) FILTER (WHERE status = 'delivered') AS delivered_count,
          COALESCE(SUM(total_cost) FILTER (WHERE status != 'failed'), 0) AS total_cost_kobo,
-         COALESCE(SUM(total_cost) FILTER (WHERE status = 'delivered'), 0) AS delivered_cost_kobo,
          ROUND(
            COUNT(*) FILTER (WHERE status = 'ghosted')::numeric
            / NULLIF(COUNT(*), 0) * 100, 1
-         ) AS ghost_rate
+         ) AS ghost_rate,
+         COALESCE(SUM(shipment_value + total_cost) FILTER (WHERE status = 'ghosted'), 0) AS value_lost_kobo
        FROM shipments
        WHERE user_id = $1
          AND date_trunc('month', created_at) = date_trunc('month', NOW())`,
@@ -44,10 +44,19 @@ router.get("/summary", asyncHandler(async (req, res) => {
          AND status IN ('pending', 'in_transit')`,
       [userId]
     ),
+    query(
+      `SELECT
+         COALESCE(SUM(shipment_value + total_cost) FILTER (WHERE status IN ('pending','in_transit')), 0) AS value_at_risk_kobo,
+         COALESCE(SUM(shipment_value + total_cost) FILTER (WHERE status = 'ghosted'), 0) AS all_time_value_lost_kobo
+       FROM shipments
+       WHERE user_id = $1`,
+      [userId]
+    ),
   ]);
 
   const t = today.rows[0];
   const m = month.rows[0];
+  const e = exposure.rows[0];
 
   res.json({
     today: {
@@ -61,6 +70,11 @@ router.get("/summary", asyncHandler(async (req, res) => {
       ghostedCount: parseInt(m.ghosted_count, 10),
       ghostRate: parseFloat(m.ghost_rate || "0"),
       totalCostKobo: parseInt(m.total_cost_kobo, 10),
+      valueLostKobo: parseInt(m.value_lost_kobo, 10),
+    },
+    exposure: {
+      valueAtRiskKobo: parseInt(e.value_at_risk_kobo, 10),
+      allTimeValueLostKobo: parseInt(e.all_time_value_lost_kobo, 10),
     },
     alertCount: parseInt(alerts.rows[0].count, 10),
   });

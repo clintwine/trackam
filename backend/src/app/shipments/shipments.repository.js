@@ -26,6 +26,7 @@ function mapRow(row) {
     lastStatusUpdateAt: row.last_status_update_at,
     delayFlag: row.delay_flag,
     ghostingFlag: row.ghosting_flag,
+    shipmentValue: row.shipment_value,
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -68,15 +69,15 @@ async function create(data) {
   const result = await query(
     `INSERT INTO shipments
        (user_id, route_id, rider_id, goods_description, pickup_location, delivery_location,
-        distance_km, rider_fee, fuel_cost, total_cost,
+        distance_km, rider_fee, fuel_cost, total_cost, shipment_value,
         risk_score, risk_score_points, risk_score_reasons,
         expected_delivery_date, notes, recipient_name, recipient_phone)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
      RETURNING *`,
     [
       data.userId, data.routeId || null, data.riderId || null,
       data.goodsDescription, data.pickupLocation, data.deliveryLocation,
-      data.distanceKm, data.riderFee, data.fuelCost, data.totalCost,
+      data.distanceKm, data.riderFee, data.fuelCost, data.totalCost, data.shipmentValue || 0,
       data.riskScore, data.riskScorePoints, data.riskScoreReasons,
       data.expectedDeliveryDate || null, data.notes || null,
       data.recipientName || null, data.recipientPhone || null,
@@ -99,8 +100,8 @@ async function updateStatus(id, userId, { newStatus, note }) {
     `UPDATE shipments
      SET status = $1,
          last_status_update_at = NOW(),
-         delay_flag = CASE WHEN $1 IN ('delivered','failed','ghosted') THEN FALSE ELSE delay_flag END,
-         ghosting_flag = CASE WHEN $1 = 'ghosted' THEN TRUE WHEN $1 IN ('delivered','failed') THEN FALSE ELSE ghosting_flag END,
+         delay_flag = CASE WHEN $1 IN ('delivered','failed','ghosted','recovered') THEN FALSE ELSE delay_flag END,
+         ghosting_flag = CASE WHEN $1 = 'ghosted' THEN TRUE WHEN $1 IN ('delivered','failed','recovered') THEN FALSE ELSE ghosting_flag END,
          actual_delivery_date = CASE WHEN $1 IN ('delivered','failed','ghosted') THEN NOW()::date ELSE actual_delivery_date END,
          updated_at = NOW()
      WHERE id = $2 AND user_id = $3

@@ -3,7 +3,13 @@ const routesRepo = require("../routes/routes.repository");
 const ridersRepo = require("../riders/riders.repository");
 const { query } = require("../../core/db/postgres");
 
-const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted"];
+const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted", "recovered"];
+
+const VALID_TRANSITIONS = {
+  pending:    ["in_transit", "failed"],
+  in_transit: ["delivered", "ghosted", "failed"],
+  ghosted:    ["recovered"],
+};
 
 async function getSettings(userId) {
   const result = await query(
@@ -85,7 +91,7 @@ async function getShipment(id, userId) {
 async function createShipment(userId, body) {
   const {
     routeId, riderId, goodsDescription, pickupLocation, deliveryLocation,
-    distanceKm, riderFee = 0, expectedDeliveryDate, notes,
+    distanceKm, riderFee = 0, shipmentValue = 0, expectedDeliveryDate, notes,
     recipientName, recipientPhone,
   } = body;
 
@@ -101,6 +107,7 @@ async function createShipment(userId, body) {
   const fuelCostKobo = fuelCostNgn * 100;
   const riderFeeKobo = riderFee * 100;
   const totalCostKobo = fuelCostKobo + riderFeeKobo;
+  const shipmentValueKobo = shipmentValue * 100;
 
   // Pull full rider profile for risk scoring
   let rider = null;
@@ -117,6 +124,7 @@ async function createShipment(userId, body) {
   const shipment = await repo.create({
     userId, routeId, riderId, goodsDescription, pickupLocation, deliveryLocation,
     distanceKm, riderFee: riderFeeKobo, fuelCost: fuelCostKobo, totalCost: totalCostKobo,
+    shipmentValue: shipmentValueKobo,
     riskScore: risk.level, riskScorePoints: risk.points, riskScoreReasons: risk.reasons,
     expectedDeliveryDate, notes, recipientName, recipientPhone,
   });
@@ -146,11 +154,10 @@ async function updateShipmentStatus(id, userId, body) {
   const current = await repo.getById(id, userId);
   if (!current) throw Object.assign(new Error("Shipment not found"), { status: 404 });
 
-  // Prevent backwards transitions on terminal statuses
-  const terminal = ["delivered", "failed", "ghosted"];
-  if (terminal.includes(current.status)) {
+  const allowed = VALID_TRANSITIONS[current.status] || [];
+  if (!allowed.includes(status)) {
     throw Object.assign(
-      new Error(`Cannot transition from terminal status '${current.status}'`),
+      new Error(`Cannot transition from '${current.status}' to '${status}'`),
       { status: 409 }
     );
   }

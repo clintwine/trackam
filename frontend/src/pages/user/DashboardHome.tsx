@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown } from "lucide-react";
+import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown, ShieldAlert, Skull } from "lucide-react";
 import { dashboardApi, type DashboardSummary, type Shipment } from "@/services/logistics";
 import { formatNaira } from "@/lib/format";
 import { RiskBadge } from "@/components/logistics/StatusBadge";
@@ -84,6 +84,35 @@ export default function DashboardHome() {
           <StatCard label="Ghost rate" value={`${s.month.ghostRate}%`} danger={s.month.ghostRate > 10} />
         </div>
       </div>
+
+      {/* Financial exposure */}
+      {(s.exposure.valueAtRiskKobo > 0 || s.exposure.allTimeValueLostKobo > 0) && (
+        <div>
+          <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">Financial exposure</p>
+          <div className="grid grid-cols-2 gap-3">
+            {s.exposure.valueAtRiskKobo > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] text-amber-700">Currently at risk</p>
+                  <ShieldAlert className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="text-xl font-semibold text-amber-900">{formatNaira(s.exposure.valueAtRiskKobo)}</p>
+                <p className="text-[11px] text-amber-600 mt-1">Goods + logistics in active shipments</p>
+              </div>
+            )}
+            {s.exposure.allTimeValueLostKobo > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] text-red-700">Lost to ghosting</p>
+                  <Skull className="h-4 w-4 text-red-400" />
+                </div>
+                <p className="text-xl font-semibold text-red-900">{formatNaira(s.exposure.allTimeValueLostKobo)}</p>
+                <p className="text-[11px] text-red-600 mt-1">Goods + logistics never recovered</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="flex flex-wrap gap-2 pt-1">

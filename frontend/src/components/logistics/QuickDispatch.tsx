@@ -16,6 +16,7 @@ export function QuickDispatch({ onDispatched }: Props) {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [riderId, setRiderId] = useState<string>("");
   const [riderFee, setRiderFee] = useState<string>("");
+  const [shipmentValue, setShipmentValue] = useState<string>("");
   const [expectedDate, setExpectedDate] = useState<string>("tomorrow");
   const [notes, setNotes] = useState("");
   const [recipientName, setRecipientName] = useState("");
@@ -37,6 +38,7 @@ export function QuickDispatch({ onDispatched }: Props) {
     setSelectedRoute(null);
     setRiderId("");
     setRiderFee("");
+    setShipmentValue("");
     setExpectedDate("tomorrow");
     setNotes("");
     setRecipientName("");
@@ -78,6 +80,7 @@ export function QuickDispatch({ onDispatched }: Props) {
         deliveryLocation: selectedRoute.deliveryLocation,
         distanceKm: selectedRoute.distanceKm,
         riderFee: riderFee ? parseFloat(riderFee) : 0,
+        shipmentValue: shipmentValue ? parseFloat(shipmentValue) : 0,
         expectedDeliveryDate: resolvedDate(),
         notes: notes || undefined,
         recipientName: recipientName || undefined,
@@ -186,16 +189,28 @@ export function QuickDispatch({ onDispatched }: Props) {
                   </select>
                 </div>
 
-                {/* Rider fee */}
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1.5">Rider fee (₦)</label>
-                  <input
-                    type="number"
-                    value={riderFee}
-                    onChange={(e) => setRiderFee(e.target.value)}
-                    placeholder="e.g. 45000"
-                    className="w-full rounded-md border border-input bg-white px-3 h-9 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
+                {/* Rider fee + shipment value */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1.5">Rider fee (₦)</label>
+                    <input
+                      type="number"
+                      value={riderFee}
+                      onChange={(e) => setRiderFee(e.target.value)}
+                      placeholder="e.g. 45000"
+                      className="w-full rounded-md border border-input bg-white px-3 h-9 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1.5">Goods value (₦)</label>
+                    <input
+                      type="number"
+                      value={shipmentValue}
+                      onChange={(e) => setShipmentValue(e.target.value)}
+                      placeholder="e.g. 500000"
+                      className="w-full rounded-md border border-input bg-white px-3 h-9 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
                 </div>
 
                 {/* Expected delivery */}

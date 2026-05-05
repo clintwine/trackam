@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, ShieldAlert, Skull, RefreshCw } from "lucide-react";
 import { shipmentsApi, type Shipment, type StatusLogEntry, type ShipmentStatus } from "@/services/logistics";
 import { formatNaira, formatDate, formatDateTime, formatDistance } from "@/lib/format";
 import { StatusBadge, RiskBadge } from "@/components/logistics/StatusBadge";
@@ -8,6 +8,7 @@ import { StatusBadge, RiskBadge } from "@/components/logistics/StatusBadge";
 const NEXT_STATUSES: Partial<Record<ShipmentStatus, ShipmentStatus[]>> = {
   pending:    ["in_transit", "failed"],
   in_transit: ["delivered", "ghosted", "failed"],
+  ghosted:    ["recovered"],
 };
 
 export default function ShipmentDetailPage() {
@@ -76,7 +77,7 @@ export default function ShipmentDetailPage() {
         )}
 
         {/* Cost breakdown */}
-        <div className="grid grid-cols-3 gap-3 pt-1">
+        <div className="grid grid-cols-4 gap-3 pt-1">
           <div>
             <p className="text-[11px] text-muted-foreground">Fuel cost</p>
             <p className="text-sm font-semibold">{formatNaira(shipment.fuelCost)}</p>
@@ -86,9 +87,15 @@ export default function ShipmentDetailPage() {
             <p className="text-sm font-semibold">{formatNaira(shipment.riderFee)}</p>
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground">Total</p>
-            <p className="text-sm font-semibold text-primary">{formatNaira(shipment.totalCost)}</p>
+            <p className="text-[11px] text-muted-foreground">Logistics total</p>
+            <p className="text-sm font-semibold">{formatNaira(shipment.totalCost)}</p>
           </div>
+          {shipment.shipmentValue > 0 && (
+            <div>
+              <p className="text-[11px] text-muted-foreground">Goods value</p>
+              <p className="text-sm font-semibold text-primary">{formatNaira(shipment.shipmentValue)}</p>
+            </div>
+          )}
         </div>
 
         {/* Meta */}
@@ -128,6 +135,54 @@ export default function ShipmentDetailPage() {
         )}
       </div>
 
+      {/* Exposure panel */}
+      {(["pending", "in_transit"].includes(shipment.status) && shipment.shipmentValue > 0) && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-xs">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+            <p className="text-xs font-semibold text-amber-800">Value at risk if this shipment ghosts</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[11px] text-amber-700/70">Goods value</p>
+              <p className="text-sm font-semibold text-amber-900">{formatNaira(shipment.shipmentValue)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-amber-700/70">Logistics spend</p>
+              <p className="text-sm font-semibold text-amber-900">{formatNaira(shipment.totalCost)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-amber-700/70">Total exposure</p>
+              <p className="text-base font-bold text-amber-900">{formatNaira(shipment.shipmentValue + shipment.totalCost)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loss summary for ghosted shipments */}
+      {shipment.status === "ghosted" && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-xs">
+          <div className="flex items-center gap-2 mb-3">
+            <Skull className="h-4 w-4 text-red-600 shrink-0" />
+            <p className="text-xs font-semibold text-red-800">Loss from this ghosted shipment</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[11px] text-red-700/70">Goods value</p>
+              <p className="text-sm font-semibold text-red-900">{shipment.shipmentValue > 0 ? formatNaira(shipment.shipmentValue) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-red-700/70">Logistics wasted</p>
+              <p className="text-sm font-semibold text-red-900">{formatNaira(shipment.totalCost)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-red-700/70">Total lost</p>
+              <p className="text-base font-bold text-red-900">{formatNaira(shipment.shipmentValue + shipment.totalCost)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status update */}
       {nextStatuses.length > 0 && (
         <div className="rounded-lg border border-border bg-white p-4 shadow-xs">
@@ -146,13 +201,14 @@ export default function ShipmentDetailPage() {
                 disabled={updating}
                 className={[
                   "inline-flex items-center gap-1.5 rounded-md px-3 h-8 text-xs font-medium transition-colors disabled:opacity-60",
-                  s === "delivered" ? "bg-green-600 text-white hover:bg-green-700" :
-                  s === "ghosted"   ? "bg-orange-600 text-white hover:bg-orange-700" :
-                                      "bg-red-600 text-white hover:bg-red-700",
+                  s === "delivered"  ? "bg-green-600 text-white hover:bg-green-700" :
+                  s === "ghosted"    ? "bg-orange-600 text-white hover:bg-orange-700" :
+                  s === "recovered"  ? "bg-teal-600 text-white hover:bg-teal-700" :
+                                       "bg-red-600 text-white hover:bg-red-700",
                 ].join(" ")}
               >
-                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                Mark as {s.replace("_", " ")}
+                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : s === "recovered" ? <RefreshCw className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {s === "recovered" ? "Mark as Recovered" : `Mark as ${s.replace("_", " ")}`}
               </button>
             ))}
           </div>

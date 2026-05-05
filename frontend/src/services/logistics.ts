@@ -3,7 +3,7 @@ import { apiClient } from "@/lib/apiClient";
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type VehicleType = "bike" | "tricycle" | "van" | "truck";
-export type ShipmentStatus = "pending" | "in_transit" | "delivered" | "failed" | "ghosted";
+export type ShipmentStatus = "pending" | "in_transit" | "delivered" | "failed" | "ghosted" | "recovered";
 export type RiskScore = "low" | "medium" | "high";
 
 export interface Rider {
@@ -57,6 +57,7 @@ export interface Shipment {
   lastStatusUpdateAt: string;
   delayFlag: boolean;
   ghostingFlag: boolean;
+  shipmentValue: number;
   notes: string | null;
   createdAt: string;
 }
@@ -72,7 +73,8 @@ export interface StatusLogEntry {
 
 export interface DashboardSummary {
   today: { pending: number; inTransit: number; delivered: number };
-  month: { totalShipments: number; deliveredCount: number; ghostedCount: number; ghostRate: number; totalCostKobo: number };
+  month: { totalShipments: number; deliveredCount: number; ghostedCount: number; ghostRate: number; totalCostKobo: number; valueLostKobo: number };
+  exposure: { valueAtRiskKobo: number; allTimeValueLostKobo: number };
   alertCount: number;
 }
 
@@ -111,7 +113,7 @@ export const shipmentsApi = {
     apiClient.get<Shipment[]>("/api/shipments", { params }).then((r) => r.data),
   get: (id: string) => apiClient.get<Shipment>(`/api/shipments/${id}`).then((r) => r.data),
   getLog: (id: string) => apiClient.get<StatusLogEntry[]>(`/api/shipments/${id}/log`).then((r) => r.data),
-  create: (data: Partial<Shipment> & { riderFee?: number }) =>
+  create: (data: Partial<Shipment> & { riderFee?: number; shipmentValue?: number }) =>
     apiClient.post<Shipment>("/api/shipments", data).then((r) => r.data),
   updateStatus: (id: string, status: ShipmentStatus, note?: string) =>
     apiClient.patch<Shipment>(`/api/shipments/${id}/status`, { status, note }).then((r) => r.data),
