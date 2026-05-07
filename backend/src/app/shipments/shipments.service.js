@@ -3,12 +3,13 @@ const routesRepo = require("../routes/routes.repository");
 const ridersRepo = require("../riders/riders.repository");
 const { query } = require("../../core/db/postgres");
 
-const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted"];
+const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted", "handed_over"];
 
 const VALID_TRANSITIONS = {
-  pending:    ["in_transit", "failed"],
-  in_transit: ["delivered", "ghosted", "failed"],
-  ghosted:    ["in_transit"],
+  pending:     ["in_transit", "failed"],
+  in_transit:  ["delivered", "ghosted", "failed", "handed_over"],
+  handed_over: ["in_transit", "delivered", "ghosted", "failed", "handed_over"],
+  ghosted:     ["in_transit"],
 };
 
 async function getSettings(userId) {

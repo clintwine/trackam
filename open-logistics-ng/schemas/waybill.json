@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-logistics-ng.github.io/schema/schemas/waybill.json",
+  "title": "OLI Waybill",
+  "description": "A shipping waybill conforming to the Open Logistics Interconnect standard. Includes a GS1-compatible EPC identifier and a QR-resolvable tracking URL.",
+  "type": "object",
+  "required": [
+    "@context", "@type", "waybillId", "trackingUrl",
+    "goodsDescription", "pickupLocation", "deliveryLocation",
+    "sender", "receiver", "createdAt"
+  ],
+  "properties": {
+    "@context": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" }
+    },
+    "@type": {
+      "type": "string",
+      "const": "LiteWaybill"
+    },
+    "waybillId": {
+      "type": "string",
+      "description": "Unique waybill identifier (e.g. WB-20260507-A3X9K2)."
+    },
+    "trackingUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Permanent public URL that resolves to this waybill's tracking page."
+    },
+    "epc": {
+      "type": "string",
+      "pattern": "^urn:ol:waybill:[a-zA-Z0-9_-]+$",
+      "description": "GS1-style Electronic Product Code for this waybill."
+    },
+    "goodsDescription": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pickupLocation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deliveryLocation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "estimatedWeightKg": {
+      "type": "number",
+      "minimum": 0
+    },
+    "declaredValueNgn": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Declared goods value in Nigerian Naira."
+    },
+    "sender": {
+      "$ref": "#/$defs/Actor"
+    },
+    "receiver": {
+      "allOf": [
+        { "$ref": "#/$defs/Actor" },
+        {
+          "properties": {
+            "address": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "Actor": {
+      "type": "object",
+      "required": ["name", "phone"],
+      "properties": {
+        "name":  { "type": "string", "minLength": 1 },
+        "phone": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

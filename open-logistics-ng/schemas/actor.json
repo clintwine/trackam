@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-logistics-ng.github.io/schema/schemas/actor.json",
+  "title": "OLI Actor",
+  "description": "An entity that participates in a custody transfer event within the OLI network.",
+  "type": "object",
+  "required": ["actorType"],
+  "properties": {
+    "actorType": {
+      "type": "string",
+      "enum": ["ACTOR_SENDER", "ACTOR_COURIER", "ACTOR_HUB", "ACTOR_RECEIVER"],
+      "description": "Role of this actor in the logistics chain."
+    },
+    "name": {
+      "type": "string",
+      "description": "Full name of the individual or organisation."
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number."
+    },
+    "bvn": {
+      "type": "string",
+      "pattern": "^[0-9]{11}$",
+      "description": "Bank Verification Number (Nigeria). 11 digits. Used for identity linkage; never exposed publicly."
+    },
+    "orgName": {
+      "type": "string",
+      "description": "Name of the organisation this actor represents (e.g. a courier company or warehouse)."
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude":  { "type": "number" },
+        "longitude": { "type": "number" },
+        "label":     { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

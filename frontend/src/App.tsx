@@ -1,5 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import LandingPage from "@/pages/LandingPage";
+import ScanPage from "@/pages/ScanPage";
+import WaybillGeneratorPage from "@/pages/WaybillGeneratorPage";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
@@ -33,6 +35,9 @@ const router = createBrowserRouter([
       { path: "/auth/verify-email", element: <VerifyEmail /> },
     ],
   },
+  // OLI public pages — no auth
+  { path: "/scan", element: <ScanPage /> },
+  { path: "/waybill", element: <WaybillGeneratorPage /> },
   {
     path: "/dashboard",
     loader: requireAuth,

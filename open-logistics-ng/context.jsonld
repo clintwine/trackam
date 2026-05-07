@@ -1,0 +1,46 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "schema": "https://schema.org/",
+    "epcis": "https://ref.gs1.org/standards/epcis/",
+    "cbv": "https://ref.gs1.org/standards/cbv/",
+    "ol": "https://open-logistics-ng.github.io/schema/terms#",
+
+    "WaybillEvent":         "ol:WaybillEvent",
+    "CustodyTransferEvent": "ol:CustodyTransferEvent",
+    "Actor":                "ol:Actor",
+    "LiteWaybill":          "ol:LiteWaybill",
+
+    "waybillId":         { "@id": "ol:waybillId",        "@type": "xsd:string" },
+    "trackingUrl":       { "@id": "ol:trackingUrl",       "@type": "@id" },
+    "goodsDescription":  { "@id": "ol:goodsDescription",  "@type": "xsd:string" },
+    "pickupLocation":    { "@id": "ol:pickupLocation",    "@type": "xsd:string" },
+    "deliveryLocation":  { "@id": "ol:deliveryLocation",  "@type": "xsd:string" },
+    "distanceKm":        { "@id": "ol:distanceKm",        "@type": "xsd:decimal" },
+    "declaredValueNgn":  { "@id": "ol:declaredValueNgn",  "@type": "xsd:decimal" },
+    "shipmentValueKobo": { "@id": "ol:shipmentValueKobo", "@type": "xsd:integer" },
+    "totalCostKobo":     { "@id": "ol:totalCostKobo",     "@type": "xsd:integer" },
+    "riskScore":         { "@id": "ol:riskScore",         "@type": "xsd:string" },
+    "delayFlag":         { "@id": "ol:delayFlag",         "@type": "xsd:boolean" },
+    "ghostingFlag":      { "@id": "ol:ghostingFlag",      "@type": "xsd:boolean" },
+
+    "giverActorType":    { "@id": "ol:giverActorType",    "@type": "xsd:string" },
+    "receiverActorType": { "@id": "ol:receiverActorType", "@type": "xsd:string" },
+    "receiverName":      { "@id": "ol:receiverName",      "@type": "xsd:string" },
+    "proofHash":         { "@id": "ol:proofHash",         "@type": "xsd:string" },
+    "proofAlgorithm":    { "@id": "ol:proofAlgorithm",    "@type": "xsd:string" },
+    "latitude":          { "@id": "schema:latitude",      "@type": "xsd:decimal" },
+    "longitude":         { "@id": "schema:longitude",     "@type": "xsd:decimal" },
+
+    "ACTOR_SENDER":   "ol:ACTOR_SENDER",
+    "ACTOR_COURIER":  "ol:ACTOR_COURIER",
+    "ACTOR_HUB":      "ol:ACTOR_HUB",
+    "ACTOR_RECEIVER": "ol:ACTOR_RECEIVER",
+
+    "bizStep":      { "@id": "epcis:bizStep",   "@type": "@id" },
+    "disposition":  { "@id": "epcis:disposition","@type": "@id" },
+    "eventTime":    { "@id": "epcis:eventTime",  "@type": "xsd:dateTimeStamp" },
+    "epcList":      { "@id": "epcis:epcList",    "@container": "@set" }
+  }
+}

@@ -4,6 +4,60 @@ const localAuthMiddleware = require("../../core/middlewares/localAuth");
 const asyncHandler = require("../../core/middlewares/asyncHandler");
 const ShipmentsService = require("./shipments.service");
 
+// GS1 CBV bizStep mapping
+const BIZ_STEP = {
+  pending:     "urn:epcglobal:cbv:bizstep:staging_outbound",
+  in_transit:  "urn:epcglobal:cbv:bizstep:in_transit",
+  handed_over: "urn:epcglobal:cbv:bizstep:receiving",
+  delivered:   "urn:epcglobal:cbv:bizstep:delivering",
+  failed:      "urn:epcglobal:cbv:bizstep:void_shipping",
+  ghosted:     "urn:ol:cbv:bizstep:ghosted",
+};
+
+const DISPOSITION = {
+  pending:     "urn:epcglobal:cbv:disp:in_progress",
+  in_transit:  "urn:epcglobal:cbv:disp:in_transit",
+  handed_over: "urn:epcglobal:cbv:disp:in_progress",
+  delivered:   "urn:epcglobal:cbv:disp:completeness_verified",
+  failed:      "urn:epcglobal:cbv:disp:no_pedigree_match",
+  ghosted:     "urn:ol:cbv:disp:ghosted",
+};
+
+function toJsonLd(s, baseUrl) {
+  return {
+    "@context": [
+      "https://ref.gs1.org/standards/epcis/epcis-context.jsonld",
+      "https://raw.githubusercontent.com/open-logistics-ng/schema/main/context.jsonld",
+    ],
+    "@type": "ObjectEvent",
+    "@id": `${baseUrl}/api/shipments/${s.id}`,
+    "eventTime": s.lastStatusUpdateAt,
+    "eventTimeZoneOffset": "+01:00",
+    "epcList": [`urn:ol:waybill:${s.id}`],
+    "action": "OBSERVE",
+    "bizStep": BIZ_STEP[s.status] || BIZ_STEP.pending,
+    "disposition": DISPOSITION[s.status] || DISPOSITION.pending,
+    "bizLocation": {
+      "@type": "BusinessLocation",
+      "id": `urn:ol:location:${encodeURIComponent(s.pickupLocation)}`,
+      "label": s.pickupLocation,
+    },
+    "destination": {
+      "@type": "BusinessLocation",
+      "id": `urn:ol:location:${encodeURIComponent(s.deliveryLocation)}`,
+      "label": s.deliveryLocation,
+    },
+    "ol:goodsDescription": s.goodsDescription,
+    "ol:distanceKm": s.distanceKm,
+    "ol:riskScore": s.riskScore,
+    "ol:totalCostKobo": s.totalCost,
+    "ol:shipmentValueKobo": s.shipmentValue,
+    "ol:status": s.status,
+    "ol:delayFlag": s.delayFlag,
+    "ol:ghostingFlag": s.ghostingFlag,
+  };
+}
+
 router.use(localAuthMiddleware);
 
 router.get("/", asyncHandler(async (req, res) => {
@@ -18,7 +72,13 @@ router.get("/", asyncHandler(async (req, res) => {
 }));
 
 router.get("/:id", asyncHandler(async (req, res) => {
-  res.json(await ShipmentsService.getShipment(req.params.id, req.user.uid));
+  const shipment = await ShipmentsService.getShipment(req.params.id, req.user.uid);
+  const accept = req.headers["accept"] || "";
+  if (accept.includes("application/ld+json")) {
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    return res.set("Content-Type", "application/ld+json").json(toJsonLd(shipment, baseUrl));
+  }
+  res.json(shipment);
 }));
 
 router.get("/:id/log", asyncHandler(async (req, res) => {

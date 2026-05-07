@@ -1,30 +1,42 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, ShieldAlert, Skull, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, ShieldAlert, Skull, RefreshCw, Handshake } from "lucide-react";
 import { shipmentsApi, type Shipment, type StatusLogEntry, type ShipmentStatus } from "@/services/logistics";
+import { handoverApi, ACTOR_LABELS, type HandoverEvent } from "@/services/handover";
 import { formatNaira, formatDate, formatDateTime, formatDistance } from "@/lib/format";
 import { StatusBadge, RiskBadge } from "@/components/logistics/StatusBadge";
+import HandoverQRModal from "@/components/logistics/HandoverQRModal";
 
 const NEXT_STATUSES: Partial<Record<ShipmentStatus, ShipmentStatus[]>> = {
-  pending:    ["in_transit", "failed"],
-  in_transit: ["delivered", "ghosted", "failed"],
-  ghosted:    ["in_transit"],
+  pending:     ["in_transit", "failed"],
+  in_transit:  ["delivered", "ghosted", "failed"],
+  handed_over: ["in_transit", "delivered", "ghosted", "failed"],
+  ghosted:     ["in_transit"],
 };
+
+const HANDOVER_ELIGIBLE: ShipmentStatus[] = ["pending", "in_transit", "handed_over"];
 
 export default function ShipmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [log, setLog] = useState<StatusLogEntry[]>([]);
+  const [handoverEvents, setHandoverEvents] = useState<HandoverEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [note, setNote] = useState("");
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
 
   async function load() {
     if (!id) return;
-    const [s, l] = await Promise.all([shipmentsApi.get(id), shipmentsApi.getLog(id)]);
+    const [s, l, events] = await Promise.all([
+      shipmentsApi.get(id),
+      shipmentsApi.getLog(id),
+      handoverApi.getEvents(id).catch(() => []),
+    ]);
     setShipment(s);
     setLog(l);
+    setHandoverEvents(events);
   }
 
   useEffect(() => { load().finally(() => setLoading(false)); }, [id]);
@@ -183,6 +195,24 @@ export default function ShipmentDetailPage() {
         </div>
       )}
 
+      {/* Initiate handover */}
+      {HANDOVER_ELIGIBLE.includes(shipment.status as ShipmentStatus) && (
+        <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-purple-900">Digital Handover</p>
+              <p className="text-[11px] text-purple-700 mt-0.5">Generate a QR code for the next person taking custody</p>
+            </div>
+            <button
+              onClick={() => setShowHandoverModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-purple-700 text-white px-3 h-8 text-xs font-medium hover:bg-purple-800 transition-colors shrink-0"
+            >
+              <Handshake className="h-3.5 w-3.5" /> Handover
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Status update */}
       {nextStatuses.length > 0 && (
         <div className="rounded-lg border border-border bg-white p-4 shadow-xs">
@@ -203,15 +233,42 @@ export default function ShipmentDetailPage() {
                   "inline-flex items-center gap-1.5 rounded-md px-3 h-8 text-xs font-medium transition-colors disabled:opacity-60",
                   s === "delivered" ? "bg-green-600 text-white hover:bg-green-700" :
                   s === "ghosted"   ? "bg-orange-600 text-white hover:bg-orange-700" :
-                  (s === "in_transit" && shipment.status === "ghosted") ? "bg-teal-600 text-white hover:bg-teal-700" :
+                  s === "handed_over" ? "bg-purple-600 text-white hover:bg-purple-700" :
+                  (s === "in_transit" && (shipment.status === "ghosted" || shipment.status === "handed_over")) ? "bg-teal-600 text-white hover:bg-teal-700" :
                                       "bg-red-600 text-white hover:bg-red-700",
                 ].join(" ")}
               >
-                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : (s === "in_transit" && shipment.status === "ghosted") ? <RefreshCw className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                {(s === "in_transit" && shipment.status === "ghosted") ? "Recover shipment" : `Mark as ${s.replace("_", " ")}`}
+                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                  (s === "in_transit" && (shipment.status === "ghosted" || shipment.status === "handed_over")) ? <RefreshCw className="h-3 w-3" /> :
+                  <CheckCircle2 className="h-3 w-3" />}
+                {(s === "in_transit" && shipment.status === "ghosted") ? "Recover shipment" :
+                 (s === "in_transit" && shipment.status === "handed_over") ? "Resume transit" :
+                 `Mark as ${s.replace(/_/g, " ")}`}
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Custody chain */}
+      {handoverEvents.length > 0 && (
+        <div className="rounded-lg border border-purple-200 bg-white p-4 shadow-xs">
+          <p className="text-xs font-medium text-foreground mb-4">Custody chain</p>
+          <ol className="relative border-l border-purple-200 ml-2 space-y-4">
+            {handoverEvents.map((event) => (
+              <li key={event.id} className="ml-4">
+                <div className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full border border-white bg-purple-500" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">
+                    {ACTOR_LABELS[event.giverActorType]} → {ACTOR_LABELS[event.receiverActorType]}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Received by {event.receiverName}</p>
+                  <p className="font-mono text-[10px] text-muted-foreground mt-0.5">PoH: {event.proofHash.slice(0, 16)}…</p>
+                  <p className="text-[11px] text-muted-foreground">{formatDateTime(event.occurredAt)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 
@@ -224,7 +281,7 @@ export default function ShipmentDetailPage() {
               <div className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full border border-white bg-primary" />
               <div>
                 <p className="text-xs font-medium text-foreground capitalize">
-                  {entry.newStatus.replace("_", " ")}
+                  {entry.newStatus.replace(/_/g, " ")}
                 </p>
                 {entry.note && <p className="text-[11px] text-muted-foreground">{entry.note}</p>}
                 <p className="text-[11px] text-muted-foreground">{formatDateTime(entry.changedAt)}</p>
@@ -233,6 +290,14 @@ export default function ShipmentDetailPage() {
           ))}
         </ol>
       </div>
+
+      {showHandoverModal && shipment && (
+        <HandoverQRModal
+          shipmentId={shipment.id}
+          goodsDescription={shipment.goodsDescription}
+          onClose={() => setShowHandoverModal(false)}
+        />
+      )}
     </div>
   );
 }

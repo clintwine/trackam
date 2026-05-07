@@ -2,19 +2,21 @@ import type { ShipmentStatus, RiskScore } from "@/services/logistics";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<ShipmentStatus, string> = {
-  pending:    "bg-stone-100 text-stone-600 border-stone-200",
-  in_transit: "bg-blue-50 text-blue-700 border-blue-200",
-  delivered:  "bg-green-50 text-green-700 border-green-200",
-  failed:     "bg-red-50 text-red-700 border-red-200",
-  ghosted:    "bg-orange-50 text-orange-700 border-orange-200",
+  pending:     "bg-stone-100 text-stone-600 border-stone-200",
+  in_transit:  "bg-blue-50 text-blue-700 border-blue-200",
+  delivered:   "bg-green-50 text-green-700 border-green-200",
+  failed:      "bg-red-50 text-red-700 border-red-200",
+  ghosted:     "bg-orange-50 text-orange-700 border-orange-200",
+  handed_over: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
-  pending:    "Pending",
-  in_transit: "In Transit",
-  delivered:  "Delivered",
-  failed:     "Failed",
-  ghosted:    "Ghosted",
+  pending:     "Pending",
+  in_transit:  "In Transit",
+  delivered:   "Delivered",
+  failed:      "Failed",
+  ghosted:     "Ghosted",
+  handed_over: "Handed Over",
 };
 
 const RISK_STYLES: Record<RiskScore, string> = {

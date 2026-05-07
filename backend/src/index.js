@@ -109,6 +109,10 @@ app.use("/api/shipments", rateLimiter, require("./app/shipments/shipments.contro
 app.use("/api/logistics/dashboard", rateLimiter, require("./app/logistics_dashboard/logistics_dashboard.controller"));
 app.use("/api/logistics/settings", rateLimiter, require("./app/logistics_settings/logistics_settings.controller"));
 
+// OLI: handover + waybill (mix of public + authenticated)
+app.use("/api/handover", rateLimiter, require("./app/handover/handover.controller"));
+app.use("/api/waybill", rateLimiter, require("./app/waybill/waybill.controller"));
+
 app.use("/", (req, res) => {
   res.send(
     "Trackam backend API. Routes: /api/riders, /api/routes, /api/shipments, /api/logistics/dashboard, /api/logistics/settings"

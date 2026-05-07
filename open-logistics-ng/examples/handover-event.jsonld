@@ -1,0 +1,23 @@
+{
+  "@context": [
+    "https://ref.gs1.org/standards/epcis/epcis-context.jsonld",
+    "https://open-logistics-ng.github.io/schema/context.jsonld"
+  ],
+  "@type": "CustodyTransferEvent",
+  "eventTime": "2026-05-07T14:32:00+01:00",
+  "eventTimeZoneOffset": "+01:00",
+  "epcList": [
+    "urn:ol:waybill:a3f9b2c1-4d5e-6f78-90ab-cdef12345678"
+  ],
+  "bizStep": "urn:epcglobal:cbv:bizstep:receiving",
+  "readPoint": {
+    "latitude": 6.5244,
+    "longitude": 3.3792,
+    "label": "Lagos Island Sorting Hub"
+  },
+  "giverActorType": "ACTOR_COURIER",
+  "receiverName": "Olawale Adeyemi",
+  "receiverActorType": "ACTOR_HUB",
+  "proofHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "proofAlgorithm": "SHA-256"
+}
