@@ -30,8 +30,9 @@ apiClient.interceptors.response.use(
       clearAuthToken();
       if (typeof window !== "undefined") {
         const path = window.location.pathname;
-        const isAuthRoute = path.startsWith("/auth");
-        if (!isAuthRoute) {
+        const PUBLIC_PREFIXES = ["/auth", "/scan", "/waybill", "/track", "/handover"];
+        const isPublicRoute = path === "/" || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
+        if (!isPublicRoute) {
           window.location.href = "/auth/login";
         }
       }
