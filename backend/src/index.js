@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const morgan = require("morgan");
+const helmet = require("helmet");
 const asyncHandler = require("./core/middlewares/asyncHandler");
 const rateLimiter = require("./core/middlewares/rateLimiter");
-const requestLogger = require("./core/middlewares/requestLogger");
 const errorHandler = require("./core/middlewares/errorHandler");
 const { query } = require("./core/db/postgres");
 const { ensureStorageDir, storageDirectory } = require("./core/storage/localStorage");
@@ -71,8 +72,9 @@ app.use(
   })
 );
 
+app.use(helmet());
+app.use(morgan("dev"));
 app.use(express.json());
-app.use(requestLogger);
 
 ensureStorageDir();
 app.use("/storage", express.static(storageDirectory));
@@ -114,6 +116,8 @@ app.use("/api/handover", rateLimiter, require("./app/handover/handover.controlle
 app.use("/api/waybill", rateLimiter, require("./app/waybill/waybill.controller"));
 // OLI: driver/custodian handover portal (public + session-authenticated)
 app.use("/api/custodian", rateLimiter, require("./app/custodian/custodian.controller"));
+// Dispatch runs — operator vehicle trip grouping
+app.use("/api/runs", rateLimiter, require("./app/runs/runs.controller"));
 
 app.use("/", (req, res) => {
   res.send(
