@@ -1,23 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { X, Loader2, Copy, Check, ArrowRight } from "lucide-react";
+import { X, Loader2, Copy, Check, ArrowRight, CheckCircle2 } from "lucide-react";
 import { handoverApi, ACTOR_LABELS, type ActorType } from "@/services/handover";
 
 interface Props {
   shipmentId: string;
   goodsDescription: string;
   onClose: () => void;
+  onConfirmed?: () => void;
 }
 
 const ACTOR_OPTIONS: ActorType[] = ["ACTOR_COURIER", "ACTOR_HUB", "ACTOR_RECEIVER", "ACTOR_SENDER"];
 
-export default function HandoverQRModal({ shipmentId, goodsDescription, onClose }: Props) {
+export default function HandoverQRModal({ shipmentId, goodsDescription, onClose, onConfirmed }: Props) {
   const [actorType, setActorType] = useState<ActorType>("ACTOR_COURIER");
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [confirmed, setConfirmed] = useState(false);
+  const [confirmedEvent, setConfirmedEvent] = useState<import("@/services/handover").HandoverEvent | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialEventCountRef = useRef<number>(-1);
 
   const scanUrl = token
     ? `${window.location.origin}/scan?token=${token}`
@@ -26,6 +31,10 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose 
   async function generate() {
     setLoading(true);
     try {
+      // Snapshot current event count before generating the token
+      const existing = await handoverApi.getEvents(shipmentId).catch(() => []);
+      initialEventCountRef.current = existing.length;
+
       const result = await handoverApi.initiate(shipmentId, actorType);
       setToken(result.token);
       setExpiresAt(result.expiresAt);
@@ -36,6 +45,34 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose 
     }
   }
 
+  // Keep a ref so the poll closure can read the latest secondsLeft without being
+  // in the dependency array (which would cancel + restart the interval every second)
+  const secondsLeftRef = useRef(secondsLeft);
+  useEffect(() => { secondsLeftRef.current = secondsLeft; }, [secondsLeft]);
+
+  // Poll for confirmation — only restarts when the token itself changes
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      if (secondsLeftRef.current <= 0) return; // token expired, stop checking
+      try {
+        const events = await handoverApi.getEvents(shipmentId);
+        if (events.length > initialEventCountRef.current) {
+          clearInterval(interval);
+          setConfirmedEvent(events[events.length - 1]);
+          setConfirmed(true);
+          onConfirmed?.();
+        }
+      } catch {
+        // best-effort
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Countdown — separate from polling so it doesn't disturb it
   useEffect(() => {
     if (secondsLeft <= 0) return;
     const interval = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
@@ -53,7 +90,7 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose 
   const secs = secondsLeft % 60;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-sm rounded-xl border border-border bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -67,7 +104,34 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose 
         </div>
 
         <div className="p-5 space-y-4">
-          {!token ? (
+          {confirmed ? (
+            <div className="flex flex-col items-center gap-4 py-2 text-center">
+              <div className="h-14 w-14 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="h-7 w-7 text-green-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Handover confirmed</p>
+                {confirmedEvent && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Custody transferred to{" "}
+                      <span className="font-medium text-foreground">{confirmedEvent.receiverName}</span>
+                      {" "}({ACTOR_LABELS[confirmedEvent.receiverActorType]})
+                    </p>
+                    <p className="font-mono text-[10px] text-muted-foreground pt-1">
+                      PoH: {confirmedEvent.proofHash.slice(0, 20)}…
+                    </p>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full inline-flex items-center justify-center rounded-md bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          ) : !token ? (
             <>
               {/* Actor type selector */}
               <div>
@@ -109,6 +173,10 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose 
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">
                     Ask the receiver to scan this QR code
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                    Waiting for receiver…
                   </p>
                   {secondsLeft > 0 ? (
                     <p className="text-xs font-medium text-amber-700 mt-1">

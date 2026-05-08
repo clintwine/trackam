@@ -5,6 +5,7 @@ function mapRow(row) {
   return {
     id: row.id,
     userId: row.user_id,
+    waybillId: row.waybill_id || null,
     routeId: row.route_id,
     riderId: row.rider_id,
     riderName: row.rider_name || null,
@@ -151,4 +152,38 @@ async function flagDelaysAndGhosting(userId, ghostThresholdHours) {
   );
 }
 
-module.exports = { list, getById, create, updateStatus, getStatusLog, flagDelaysAndGhosting };
+// Service-level status update — used when there's no operator user_id (custodian handovers).
+// The caller is responsible for authorization (token validation gates this path).
+async function systemUpdateStatus(id, { newStatus, note }) {
+  const current = await query(`SELECT status FROM shipments WHERE id = $1`, [id]);
+  const oldStatus = current.rows[0]?.status || null;
+
+  await query(
+    `INSERT INTO shipment_status_log (shipment_id, old_status, new_status, note)
+     VALUES ($1, $2, $3, $4)`,
+    [id, oldStatus, newStatus, note || null]
+  );
+
+  await query(
+    `UPDATE shipments
+     SET status = $1, last_status_update_at = NOW(), updated_at = NOW()
+     WHERE id = $2`,
+    [newStatus, id]
+  );
+}
+
+// When final delivery is confirmed, mark every leg of the same waybill as delivered.
+async function deliverAllByWaybill(waybillId) {
+  await query(
+    `UPDATE shipments
+       SET status = 'delivered',
+           last_status_update_at = NOW(),
+           actual_delivery_date = NOW()::date,
+           updated_at = NOW()
+     WHERE waybill_id = $1
+       AND status NOT IN ('delivered', 'failed')`,
+    [waybillId]
+  );
+}
+
+module.exports = { list, getById, create, updateStatus, systemUpdateStatus, getStatusLog, flagDelaysAndGhosting, deliverAllByWaybill };

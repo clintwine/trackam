@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react"; // Package used in error state
 import { publicHandoverApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type TokenInfo, type HandoverConfirmation } from "@/services/handover";
+import { PublicNav } from "@/components/layout/PublicNav";
 
 type Phase = "loading" | "token-form" | "waybill-view" | "submitting" | "success" | "error";
 
@@ -9,6 +10,7 @@ const ACTOR_OPTIONS: ActorType[] = ["ACTOR_COURIER", "ACTOR_HUB", "ACTOR_RECEIVE
 
 export default function ScanPage() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const token = params.get("token");
   const waybillId = params.get("waybill");
 
@@ -29,12 +31,16 @@ export default function ScanPage() {
   useEffect(() => {
     if (token) {
       publicHandoverApi.getTokenInfo(token)
-        .then((info) => { setTokenInfo(info); setPhase("token-form"); })
+        .then((info) => {
+          setTokenInfo(info);
+          // Pre-fill receiver role to match what the operator specified — locked for integrity
+          setReceiverActorType(info.giverActorType);
+          setPhase("token-form");
+        })
         .catch((err) => { setError(err?.response?.data?.message || "Invalid or expired handover link."); setPhase("error"); });
     } else if (waybillId) {
-      publicWaybillApi.get(waybillId)
-        .then((wb) => { setWaybill(wb); setPhase("waybill-view"); })
-        .catch(() => { setError("Waybill not found."); setPhase("error"); });
+      // Redirect waybill scans to the dedicated tracking page
+      navigate(`/track/${waybillId}`, { replace: true });
     } else {
       setError("No valid token or waybill ID in this link.");
       setPhase("error");
@@ -75,13 +81,7 @@ export default function ScanPage() {
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">
-      {/* Nav */}
-      <header className="bg-stone-900 px-4 py-3 flex items-center gap-2.5">
-        <div className="h-7 w-7 rounded-md bg-orange-500 flex items-center justify-center shrink-0">
-          <Package className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-sm font-semibold text-white tracking-tight">Trackam</span>
-      </header>
+      <PublicNav />
 
       <main className="flex-1 flex flex-col px-4 py-6 max-w-md mx-auto w-full">
 
@@ -154,25 +154,13 @@ export default function ScanPage() {
               </p>
             </div>
 
-            {/* Your role */}
+            {/* Your role — locked to what the operator specified */}
             <div>
-              <label className="text-xs font-medium text-foreground block mb-2">Your role</label>
-              <div className="grid grid-cols-2 gap-2">
-                {ACTOR_OPTIONS.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setReceiverActorType(type)}
-                    className={[
-                      "rounded-md border px-3 py-2.5 text-[11px] font-medium text-left transition-colors",
-                      receiverActorType === type
-                        ? "border-purple-500 bg-purple-50 text-purple-800"
-                        : "border-border text-muted-foreground hover:border-purple-300",
-                    ].join(" ")}
-                  >
-                    {ACTOR_LABELS[type]}
-                  </button>
-                ))}
+              <label className="text-xs font-medium text-foreground block mb-1.5">Your role</label>
+              <div className="flex items-center gap-2 rounded-md border border-purple-200 bg-purple-50 px-3 py-2.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                <span className="text-xs font-semibold text-purple-800">{ACTOR_LABELS[receiverActorType]}</span>
+                <span className="ml-auto text-[10px] text-purple-500">Set by operator</span>
               </div>
             </div>
 

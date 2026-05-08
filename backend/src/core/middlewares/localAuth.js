@@ -23,6 +23,11 @@ function extractToken(req) {
     return authHeader.split("Bearer ")[1].trim();
   }
 
+  // SSE connections can't set custom headers — accept token via query param
+  if (req.query?.token) {
+    return String(req.query.token);
+  }
+
   return null;
 }
 

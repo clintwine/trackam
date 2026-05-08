@@ -2,6 +2,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import LandingPage from "@/pages/LandingPage";
 import ScanPage from "@/pages/ScanPage";
 import WaybillGeneratorPage from "@/pages/WaybillGeneratorPage";
+import TrackWaybillPage from "@/pages/TrackWaybillPage";
+import DriverHandoverPage from "@/pages/DriverHandoverPage";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
@@ -18,6 +20,7 @@ import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import AdminRolesPage from "@/pages/admin/AdminRolesPage";
 import ShipmentsPage from "@/pages/logistics/ShipmentsPage";
 import ShipmentDetailPage from "@/pages/logistics/ShipmentDetailPage";
+import WaybillsPage from "@/pages/logistics/WaybillsPage";
 import RidersPage from "@/pages/logistics/RidersPage";
 import RoutesPage from "@/pages/logistics/RoutesPage";
 import SettingsPage from "@/pages/logistics/SettingsPage";
@@ -38,6 +41,8 @@ const router = createBrowserRouter([
   // OLI public pages — no auth
   { path: "/scan", element: <ScanPage /> },
   { path: "/waybill", element: <WaybillGeneratorPage /> },
+  { path: "/track/:id", element: <TrackWaybillPage /> },
+  { path: "/handover/driver", element: <DriverHandoverPage /> },
   {
     path: "/dashboard",
     loader: requireAuth,
@@ -46,6 +51,7 @@ const router = createBrowserRouter([
       { index: true, element: <DashboardHome /> },
       { path: "shipments", element: <ShipmentsPage /> },
       { path: "shipments/:id", element: <ShipmentDetailPage /> },
+      { path: "waybills", element: <WaybillsPage /> },
       { path: "riders", element: <RidersPage /> },
       { path: "routes", element: <RoutesPage /> },
       { path: "settings", element: <SettingsPage /> },

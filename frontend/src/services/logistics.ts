@@ -3,7 +3,7 @@ import { apiClient } from "@/lib/apiClient";
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type VehicleType = "bike" | "tricycle" | "van" | "truck";
-export type ShipmentStatus = "pending" | "in_transit" | "delivered" | "failed" | "ghosted" | "handed_over";
+export type ShipmentStatus = "pending" | "in_transit" | "delivered" | "failed" | "ghosted" | "handed_over" | "disputed";
 export type RiskScore = "low" | "medium" | "high";
 
 export interface Rider {
@@ -37,6 +37,7 @@ export interface Route {
 export interface Shipment {
   id: string;
   routeId: string | null;
+  waybillId: string | null;
   riderId: string | null;
   riderName: string | null;
   goodsDescription: string;
@@ -117,6 +118,8 @@ export const shipmentsApi = {
     apiClient.post<Shipment>("/api/shipments", data).then((r) => r.data),
   updateStatus: (id: string, status: ShipmentStatus, note?: string) =>
     apiClient.patch<Shipment>(`/api/shipments/${id}/status`, { status, note }).then((r) => r.data),
+  reclaim: (id: string, reason?: string) =>
+    apiClient.post<Shipment>(`/api/shipments/${id}/reclaim`, { reason }).then((r) => r.data),
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────

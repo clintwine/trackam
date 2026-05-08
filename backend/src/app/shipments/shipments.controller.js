@@ -94,4 +94,9 @@ router.patch("/:id/status", asyncHandler(async (req, res) => {
   res.json(await ShipmentsService.updateShipmentStatus(req.params.id, req.user.uid, req.body));
 }));
 
+// Operator disputes a handed_over or ghosted shipment so they can re-initiate handover
+router.post("/:id/reclaim", asyncHandler(async (req, res) => {
+  res.json(await ShipmentsService.reclaimShipment(req.user.uid, req.params.id, req.body));
+}));
+
 module.exports = router;

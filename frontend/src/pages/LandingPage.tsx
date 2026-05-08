@@ -1,23 +1,10 @@
-import { Package, ArrowRight, ShieldCheck, Link2, FileText } from "lucide-react";
+import { ArrowRight, ShieldCheck, Link2, FileText } from "lucide-react";
+import { PublicNav } from "@/components/layout/PublicNav";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Nav */}
-      <header className="border-b border-border bg-white px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-md bg-orange-500 flex items-center justify-center">
-            <Package className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-bold text-stone-900 tracking-tight">Trackam</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <a href="/waybill" className="text-xs text-stone-500 hover:text-stone-900 transition-colors">Free waybill</a>
-          <a href="/auth/login" className="inline-flex items-center gap-1.5 rounded-md bg-stone-900 text-white px-3.5 h-8 text-xs font-medium hover:bg-stone-800 transition-colors">
-            Sign in <ArrowRight className="h-3 w-3" />
-          </a>
-        </div>
-      </header>
+      <PublicNav />
 
       {/* Hero */}
       <section className="px-5 py-16 max-w-2xl mx-auto text-center">
@@ -77,7 +64,7 @@ export default function LandingPage() {
       <footer className="border-t border-border px-5 py-6 text-center">
         <p className="text-[11px] text-stone-400">
           Powered by Open Logistics Interconnect (OLI) ·{" "}
-          <a href="https://github.com/open-logistics-ng" target="_blank" rel="noopener noreferrer" className="underline">open-logistics-ng</a>
+          <a href="https://github.com/Jeffreyon/trackam" target="_blank" rel="noopener noreferrer" className="underline">GitHub</a>
         </p>
       </footer>
     </div>

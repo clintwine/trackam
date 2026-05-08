@@ -88,4 +88,78 @@ export const publicWaybillApi = {
   create: (data: Record<string, unknown>) =>
     axios.post(`${publicBase()}/api/waybill`, data).then((r) => r.data),
   pdfUrl: (id: string) => `${publicBase()}/api/waybill/${id}/pdf`,
+  getChain: (id: string) =>
+    axios.get(`${publicBase()}/api/waybill/${id}/chain`).then((r) => r.data),
+  lookup: (waybillNumber: string) =>
+    axios.get(`${publicBase()}/api/waybill/lookup/${encodeURIComponent(waybillNumber)}`).then((r) => r.data),
+  requestSenderOtp: (phone: string) =>
+    axios.post<{ verificationId: string }>(`${publicBase()}/api/waybill/request-sender-otp`, { phone }).then((r) => r.data),
+  verifySenderOtp: (verificationId: string, otp: string) =>
+    axios.post<{ verificationToken: string; phone: string }>(`${publicBase()}/api/waybill/verify-sender-otp`, { verificationId, otp }).then((r) => r.data),
+};
+
+export interface OperatorWaybill {
+  id: string;
+  waybillNumber: string;
+  goodsDescription: string;
+  pickupLocation: string;
+  deliveryLocation: string;
+  estimatedWeightKg: number | null;
+  claimedAt: string;
+  handoverCount: number;
+  isDelivered: boolean;
+  senderName: string;
+  receiverName: string;
+}
+
+export const waybillApi = {
+  list: () =>
+    apiClient.get<OperatorWaybill[]>(`/api/waybill/mine`).then((r) => r.data),
+  claim: (data: { waybillNumber: string; claimToken: string }) =>
+    apiClient.post<{ shipmentId: string }>(`/api/waybill/claim`, data).then((r) => r.data),
+  joinLeg: (waybillId: string, proofHash: string) =>
+    apiClient.post<{ shipmentId: string; waybillId: string }>(`/api/waybill/${waybillId}/join-leg`, { proofHash }).then((r) => r.data),
+  lookupId: (waybillNumber: string) =>
+    axios.get<{ id: string }>(`${publicBase()}/api/waybill/lookup/${encodeURIComponent(waybillNumber)}`).then((r) => r.data),
+};
+
+export interface CustodyInfo {
+  sessionId: string;
+  name: string;
+  actorType: ActorType;
+  shipment: {
+    goodsDescription: string;
+    pickupLocation: string;
+    deliveryLocation: string;
+    status: string;
+  };
+  waybillId: string | null;
+  waybillNumber: string | null;
+}
+
+// Public custodian API — no operator auth, uses per-request custodian JWT
+export const custodianApi = {
+  requestOtp: (body: { sessionId: string; phone: string }) =>
+    axios.post(`${publicBase()}/api/custodian/request-otp`, body).then((r) => r.data),
+
+  verifyOtp: (body: { sessionId: string; otp: string }) =>
+    axios.post<{ token: string; name: string; actorType: ActorType; shipmentId: string }>(
+      `${publicBase()}/api/custodian/verify-otp`,
+      body
+    ).then((r) => r.data),
+
+  getMe: (custodianToken: string) =>
+    axios.get<CustodyInfo>(`${publicBase()}/api/custodian/me`, {
+      headers: { Authorization: `Bearer ${custodianToken}` },
+    }).then((r) => r.data),
+
+  initiateHandover: (custodianToken: string, actorType: ActorType) =>
+    axios.post<HandoverToken>(
+      `${publicBase()}/api/custodian/initiate-handover`,
+      { actorType },
+      { headers: { Authorization: `Bearer ${custodianToken}` } }
+    ).then((r) => r.data),
+
+  resendLink: (phone: string) =>
+    axios.post<{ sent: boolean; sessionId: string }>(`${publicBase()}/api/custodian/resend-link`, { phone }).then((r) => r.data),
 };

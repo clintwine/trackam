@@ -16,11 +16,14 @@ import {
   Truck,
   Menu,
   X,
+  FileText,
 } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/dashboard/shipments", label: "Shipments", icon: Package, end: false },
+  { to: "/dashboard/waybills", label: "Waybills", icon: FileText, end: false },
   { to: "/dashboard/riders", label: "Riders", icon: Users, end: false },
   { to: "/dashboard/routes", label: "Routes", icon: MapPin, end: false },
   { to: "/dashboard/settings", label: "Settings", icon: Settings, end: false },
@@ -29,6 +32,7 @@ const NAV_ITEMS = [
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   "/dashboard": { title: "Overview", description: "Your logistics at a glance." },
   "/dashboard/shipments": { title: "Shipments", description: "Track every order and delivery." },
+  "/dashboard/waybills": { title: "Waybills", description: "All waybills registered on this account via OLI." },
   "/dashboard/riders": { title: "Riders", description: "Manage your logistics vendors." },
   "/dashboard/routes": { title: "Routes", description: "Set up your standard delivery lanes." },
   "/dashboard/settings": { title: "Settings", description: "Fuel rates, business info, and preferences." },
@@ -279,12 +283,14 @@ export default function DashboardLayout() {
             </div>
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-sm font-semibold text-foreground">{page.title}</h1>
             {page.description && (
               <p className="hidden sm:block text-xs text-muted-foreground">{page.description}</p>
             )}
           </div>
+
+          <NotificationBell />
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6">

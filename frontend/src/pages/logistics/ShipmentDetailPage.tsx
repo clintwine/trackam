@@ -1,20 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, ShieldAlert, Skull, RefreshCw, Handshake } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, ShieldAlert, Skull, RefreshCw, Handshake, Wifi, AlertTriangle, MapPin, ShieldCheck } from "lucide-react";
 import { shipmentsApi, type Shipment, type StatusLogEntry, type ShipmentStatus } from "@/services/logistics";
-import { handoverApi, ACTOR_LABELS, type HandoverEvent } from "@/services/handover";
+import { handoverApi, publicWaybillApi, ACTOR_LABELS, type HandoverEvent, type ActorType } from "@/services/handover";
 import { formatNaira, formatDate, formatDateTime, formatDistance } from "@/lib/format";
 import { StatusBadge, RiskBadge } from "@/components/logistics/StatusBadge";
 import HandoverQRModal from "@/components/logistics/HandoverQRModal";
+import { getApiBaseUrl } from "@/lib/runtimeConfig";
+import { getAuthToken } from "@/lib/authToken";
 
 const NEXT_STATUSES: Partial<Record<ShipmentStatus, ShipmentStatus[]>> = {
   pending:     ["in_transit", "failed"],
   in_transit:  ["delivered", "ghosted", "failed"],
-  handed_over: ["in_transit", "delivered", "ghosted", "failed"],
-  ghosted:     ["in_transit"],
+  handed_over: ["disputed"],
+  ghosted:     ["in_transit", "disputed"],
+  disputed:    ["in_transit"],
 };
 
-const HANDOVER_ELIGIBLE: ShipmentStatus[] = ["pending", "in_transit", "handed_over"];
+const HANDOVER_ELIGIBLE: ShipmentStatus[] = ["pending", "in_transit", "disputed"];
+
+interface ChainEvent {
+  id: string;
+  giverName: string | null;
+  giverActorType: ActorType;
+  receiverName: string;
+  receiverActorType: ActorType;
+  proofHash: string;
+  latitude: number | null;
+  longitude: number | null;
+  occurredAt: string;
+}
 
 export default function ShipmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,10 +37,16 @@ export default function ShipmentDetailPage() {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [log, setLog] = useState<StatusLogEntry[]>([]);
   const [handoverEvents, setHandoverEvents] = useState<HandoverEvent[]>([]);
+  const [waybillChain, setWaybillChain] = useState<ChainEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [note, setNote] = useState("");
   const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const [justUpdated, setJustUpdated] = useState(false);
+  const [reclaimReason, setReclaimReason] = useState("");
+  const [showReclaimForm, setShowReclaimForm] = useState(false);
+  const esRef = useRef<EventSource | null>(null);
 
   async function load() {
     if (!id) return;
@@ -37,9 +58,36 @@ export default function ShipmentDetailPage() {
     setShipment(s);
     setLog(l);
     setHandoverEvents(events);
+
+    // Fetch full cross-operator chain if this shipment is waybill-linked
+    if (s.waybillId) {
+      publicWaybillApi.getChain(s.waybillId)
+        .then((data: { chain: ChainEvent[] }) => setWaybillChain(data.chain))
+        .catch(() => {});
+    }
   }
 
   useEffect(() => { load().finally(() => setLoading(false)); }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const base = getApiBaseUrl() ?? "";
+    const token = getAuthToken();
+    const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+    const es = new EventSource(`${base}/api/handover/stream/${id}${qs}`);
+    esRef.current = es;
+
+    es.addEventListener("open", () => setLiveConnected(true));
+    es.addEventListener("error", () => setLiveConnected(false));
+    es.addEventListener("message", () => {
+      load().then(() => {
+        setJustUpdated(true);
+        setTimeout(() => setJustUpdated(false), 4000);
+      });
+    });
+
+    return () => { es.close(); setLiveConnected(false); };
+  }, [id]);
 
   async function handleStatusUpdate(status: ShipmentStatus) {
     if (!id) return;
@@ -55,10 +103,26 @@ export default function ShipmentDetailPage() {
     }
   }
 
+  async function handleReclaim() {
+    if (!id) return;
+    setUpdating(true);
+    try {
+      const updated = await shipmentsApi.reclaim(id, reclaimReason || undefined);
+      setShipment(updated);
+      const l = await shipmentsApi.getLog(id);
+      setLog(l);
+      setReclaimReason("");
+      setShowReclaimForm(false);
+    } finally {
+      setUpdating(false);
+    }
+  }
+
   if (loading) return <div className="animate-pulse h-64 rounded-lg bg-stone-100" />;
   if (!shipment) return <p className="text-sm text-muted-foreground">Shipment not found.</p>;
 
   const nextStatuses = NEXT_STATUSES[shipment.status as ShipmentStatus] || [];
+  const showChain = waybillChain.length > 0;
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -76,6 +140,11 @@ export default function ShipmentDetailPage() {
             </p>
           </div>
           <div className="flex gap-2 items-center flex-wrap">
+            {liveConnected && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-600">
+                <Wifi className="h-3 w-3" /> Live
+              </span>
+            )}
             <RiskBadge score={shipment.riskScore} />
             <StatusBadge status={shipment.status as ShipmentStatus} />
           </div>
@@ -129,7 +198,6 @@ export default function ShipmentDetailPage() {
           )}
         </div>
 
-        {/* Risk score breakdown */}
         {shipment.riskScoreReasons?.length > 0 && (
           <div className="border-t border-border pt-3">
             <p className="text-[11px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
@@ -195,13 +263,63 @@ export default function ShipmentDetailPage() {
         </div>
       )}
 
+      {/* Dispute panel — shown for handed_over or ghosted */}
+      {["handed_over", "ghosted"].includes(shipment.status) && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-red-900">Dispute / Reclaim</p>
+                <p className="text-[11px] text-red-700 mt-0.5">Open a dispute if custody was not properly transferred</p>
+              </div>
+            </div>
+            {!showReclaimForm && (
+              <button
+                onClick={() => setShowReclaimForm(true)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 text-white px-3 h-8 text-xs font-medium hover:bg-red-700 transition-colors shrink-0"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" /> Dispute
+              </button>
+            )}
+          </div>
+          {showReclaimForm && (
+            <div className="mt-3 space-y-2">
+              <input
+                value={reclaimReason}
+                onChange={(e) => setReclaimReason(e.target.value)}
+                placeholder="Reason (e.g. driver unreachable, goods not delivered)"
+                className="w-full rounded-md border border-red-300 bg-white px-3 h-8 text-xs focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleReclaim}
+                  disabled={updating}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-red-600 text-white px-3 h-8 text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-60"
+                >
+                  {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlertTriangle className="h-3 w-3" />}
+                  Mark as disputed
+                </button>
+                <button onClick={() => setShowReclaimForm(false)} className="text-xs text-muted-foreground hover:text-foreground">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Initiate handover */}
       {HANDOVER_ELIGIBLE.includes(shipment.status as ShipmentStatus) && (
         <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 shadow-xs">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-purple-900">Digital Handover</p>
-              <p className="text-[11px] text-purple-700 mt-0.5">Generate a QR code for the next person taking custody</p>
+              <p className="text-[11px] text-purple-700 mt-0.5">
+                {shipment.status === "disputed"
+                  ? "Re-initiate handover after dispute resolution"
+                  : "Generate a QR code for the next person taking custody"}
+              </p>
             </div>
             <button
               onClick={() => setShowHandoverModal(true)}
@@ -231,29 +349,101 @@ export default function ShipmentDetailPage() {
                 disabled={updating}
                 className={[
                   "inline-flex items-center gap-1.5 rounded-md px-3 h-8 text-xs font-medium transition-colors disabled:opacity-60",
-                  s === "delivered" ? "bg-green-600 text-white hover:bg-green-700" :
-                  s === "ghosted"   ? "bg-orange-600 text-white hover:bg-orange-700" :
-                  s === "handed_over" ? "bg-purple-600 text-white hover:bg-purple-700" :
-                  (s === "in_transit" && (shipment.status === "ghosted" || shipment.status === "handed_over")) ? "bg-teal-600 text-white hover:bg-teal-700" :
+                  s === "delivered"  ? "bg-green-600 text-white hover:bg-green-700" :
+                  s === "ghosted"    ? "bg-orange-600 text-white hover:bg-orange-700" :
+                  s === "disputed"   ? "bg-red-600 text-white hover:bg-red-700" :
+                  s === "in_transit" ? "bg-teal-600 text-white hover:bg-teal-700" :
                                       "bg-red-600 text-white hover:bg-red-700",
                 ].join(" ")}
               >
-                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> :
-                  (s === "in_transit" && (shipment.status === "ghosted" || shipment.status === "handed_over")) ? <RefreshCw className="h-3 w-3" /> :
-                  <CheckCircle2 className="h-3 w-3" />}
-                {(s === "in_transit" && shipment.status === "ghosted") ? "Recover shipment" :
-                 (s === "in_transit" && shipment.status === "handed_over") ? "Resume transit" :
-                 `Mark as ${s.replace(/_/g, " ")}`}
+                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                {s === "in_transit" ? "Resume transit" : `Mark as ${s.replace(/_/g, " ")}`}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Custody chain */}
-      {handoverEvents.length > 0 && (
-        <div className="rounded-lg border border-purple-200 bg-white p-4 shadow-xs">
-          <p className="text-xs font-medium text-foreground mb-4">Custody chain</p>
+      {/* Live update banner */}
+      {justUpdated && (
+        <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-2.5 flex items-center gap-2 text-xs font-medium text-green-800">
+          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+          Handover confirmed — custody chain updated in real time.
+        </div>
+      )}
+
+      {/* Full waybill custody chain (cross-operator) */}
+      {showChain && (
+        <div className={[
+          "rounded-lg border p-4 shadow-xs transition-colors duration-700",
+          justUpdated ? "border-green-400 bg-green-50" : "border-purple-200 bg-white",
+        ].join(" ")}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-medium text-foreground">Full custody chain</p>
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <ShieldCheck className="h-3 w-3 text-purple-500" />
+              {waybillChain.length} event{waybillChain.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="relative">
+            <div className="absolute left-[17px] top-5 bottom-5 w-px bg-purple-200" />
+            <div className="space-y-3">
+              {waybillChain.map((event, idx) => (
+                <div key={event.id} className="relative flex gap-3">
+                  <div className={[
+                    "relative z-10 shrink-0 h-9 w-9 rounded-full border-2 flex items-center justify-center text-[10px] font-bold",
+                    idx === waybillChain.length - 1 && event.receiverActorType === "ACTOR_RECEIVER"
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-purple-400 bg-purple-50 text-purple-700",
+                  ].join(" ")}>
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 rounded-lg border border-border bg-stone-50 p-3 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">{event.receiverName}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {event.giverName
+                            ? `${event.giverName} (${ACTOR_LABELS[event.giverActorType]})`
+                            : ACTOR_LABELS[event.giverActorType]}{" "}→ {ACTOR_LABELS[event.receiverActorType]}
+                        </p>
+                      </div>
+                      {event.latitude != null && event.longitude != null && (
+                        <a
+                          href={`https://maps.google.com?q=${event.latitude},${event.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-[10px] text-muted-foreground hover:text-primary flex items-center gap-0.5"
+                        >
+                          <MapPin className="h-2.5 w-2.5" /> GPS
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-mono text-[10px] text-muted-foreground truncate">
+                        {event.proofHash.slice(0, 16)}…
+                      </p>
+                      <p className="text-[10px] text-muted-foreground shrink-0 whitespace-nowrap">
+                        {new Date(event.occurredAt).toLocaleDateString("en-NG", { day: "2-digit", month: "short" })}
+                        {" · "}
+                        {new Date(event.occurredAt).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fallback: shipment-scoped events when no waybill chain available */}
+      {!showChain && handoverEvents.length > 0 && (
+        <div className={[
+          "rounded-lg border p-4 shadow-xs transition-colors duration-700",
+          justUpdated ? "border-green-400 bg-green-50" : "border-purple-200 bg-white",
+        ].join(" ")}>
+          <p className="text-xs font-medium text-foreground mb-4">Custody events</p>
           <ol className="relative border-l border-purple-200 ml-2 space-y-4">
             {handoverEvents.map((event) => (
               <li key={event.id} className="ml-4">
@@ -296,6 +486,12 @@ export default function ShipmentDetailPage() {
           shipmentId={shipment.id}
           goodsDescription={shipment.goodsDescription}
           onClose={() => setShowHandoverModal(false)}
+          onConfirmed={() => {
+            load().then(() => {
+              setJustUpdated(true);
+              setTimeout(() => setJustUpdated(false), 4000);
+            });
+          }}
         />
       )}
     </div>

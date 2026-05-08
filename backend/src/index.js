@@ -112,6 +112,8 @@ app.use("/api/logistics/settings", rateLimiter, require("./app/logistics_setting
 // OLI: handover + waybill (mix of public + authenticated)
 app.use("/api/handover", rateLimiter, require("./app/handover/handover.controller"));
 app.use("/api/waybill", rateLimiter, require("./app/waybill/waybill.controller"));
+// OLI: driver/custodian handover portal (public + session-authenticated)
+app.use("/api/custodian", rateLimiter, require("./app/custodian/custodian.controller"));
 
 app.use("/", (req, res) => {
   res.send(

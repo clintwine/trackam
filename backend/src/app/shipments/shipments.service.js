@@ -3,13 +3,14 @@ const routesRepo = require("../routes/routes.repository");
 const ridersRepo = require("../riders/riders.repository");
 const { query } = require("../../core/db/postgres");
 
-const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted", "handed_over"];
+const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted", "handed_over", "disputed"];
 
 const VALID_TRANSITIONS = {
   pending:     ["in_transit", "failed"],
   in_transit:  ["delivered", "ghosted", "failed", "handed_over"],
-  handed_over: ["in_transit", "delivered", "ghosted", "failed", "handed_over"],
-  ghosted:     ["in_transit"],
+  handed_over: ["in_transit", "delivered", "ghosted", "failed", "handed_over", "disputed"],
+  ghosted:     ["in_transit", "disputed"],
+  disputed:    ["in_transit"],
 };
 
 async function getSettings(userId) {
@@ -172,4 +173,21 @@ async function getShipmentStatusLog(id, userId) {
   return repo.getStatusLog(id, userId);
 }
 
-module.exports = { listShipments, getShipment, createShipment, updateShipmentStatus, getShipmentStatusLog };
+// Operator opens a dispute on a handed_over or ghosted shipment.
+// Sets status to 'disputed', which re-enables handover token creation so they can
+// initiate a fresh handover once the situation is resolved.
+async function reclaimShipment(userId, shipmentId, { reason } = {}) {
+  const shipment = await repo.getById(shipmentId, userId);
+  if (!shipment) throw Object.assign(new Error("Shipment not found"), { status: 404 });
+  if (!["handed_over", "ghosted"].includes(shipment.status)) {
+    throw Object.assign(
+      new Error("Only handed_over or ghosted shipments can be disputed"),
+      { status: 409 }
+    );
+  }
+  const note = reason ? `Disputed: ${reason}` : "Shipment marked as disputed by operator";
+  const updated = await repo.updateStatus(shipmentId, userId, { newStatus: "disputed", note });
+  return updated;
+}
+
+module.exports = { listShipments, getShipment, createShipment, updateShipmentStatus, getShipmentStatusLog, reclaimShipment };
