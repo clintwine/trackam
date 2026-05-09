@@ -111,11 +111,13 @@ app.use("/api/shipments", rateLimiter, require("./app/shipments/shipments.contro
 app.use("/api/logistics/dashboard", rateLimiter, require("./app/logistics_dashboard/logistics_dashboard.controller"));
 app.use("/api/logistics/settings", rateLimiter, require("./app/logistics_settings/logistics_settings.controller"));
 
-// OLI: handover + waybill (mix of public + authenticated)
-app.use("/api/handover", rateLimiter, require("./app/handover/handover.controller"));
-app.use("/api/waybill", rateLimiter, require("./app/waybill/waybill.controller"));
-// OLI: driver/custodian handover portal (public + session-authenticated)
-app.use("/api/custodian", rateLimiter, require("./app/custodian/custodian.controller"));
+// OLI Switch proxy — forwards waybill / handover / custodian to the private switch
+const { createOliProxy } = require("./app/oli/oli.proxy");
+const localAuthOptional  = require("./core/middlewares/localAuthOptional");
+const oliProxy = createOliProxy();
+app.use("/api/waybill",   rateLimiter, localAuthOptional, oliProxy);
+app.use("/api/handover",  rateLimiter, localAuthOptional, oliProxy);
+app.use("/api/custodian", rateLimiter, oliProxy);
 // Dispatch runs — operator vehicle trip grouping
 app.use("/api/runs", rateLimiter, require("./app/runs/runs.controller"));
 
