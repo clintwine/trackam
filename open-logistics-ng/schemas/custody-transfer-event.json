@@ -13,7 +13,7 @@
     "@context": {
       "oneOf": [
         { "type": "string", "format": "uri" },
-        { "type": "array",  "items": { "type": "string", "format": "uri" } }
+        { "type": "array", "items": { "type": "string", "format": "uri" } }
       ]
     },
     "@type": {
@@ -40,7 +40,9 @@
         "urn:epcglobal:cbv:bizstep:receiving",
         "urn:epcglobal:cbv:bizstep:in_transit",
         "urn:epcglobal:cbv:bizstep:staging_outbound",
-        "urn:epcglobal:cbv:bizstep:delivering"
+        "urn:epcglobal:cbv:bizstep:delivering",
+        "urn:epcglobal:cbv:bizstep:void_shipping",
+        "urn:ol:cbv:bizstep:ghosted"
       ]
     },
     "readPoint": {
@@ -55,6 +57,14 @@
       "type": "string",
       "enum": ["ACTOR_SENDER", "ACTOR_COURIER", "ACTOR_HUB", "ACTOR_RECEIVER"]
     },
+    "giverName": {
+      "type": "string",
+      "description": "Full name of the party giving custody. Present for custodian (non-platform) givers."
+    },
+    "giverPhone": {
+      "type": "string",
+      "description": "Phone number of the giver. Present for custodian givers."
+    },
     "receiverName": {
       "type": "string",
       "minLength": 1,
@@ -63,6 +73,36 @@
     "receiverActorType": {
       "type": "string",
       "enum": ["ACTOR_SENDER", "ACTOR_COURIER", "ACTOR_HUB", "ACTOR_RECEIVER"]
+    },
+    "receiverPhone": {
+      "type": "string",
+      "description": "Phone number of the receiver. Used to create a custodian OTP session for non-final receivers."
+    },
+    "receiverIdScheme": {
+      "type": "string",
+      "description": "The identity scheme used to verify the receiver (e.g. ng:bvn, gh:ghana-card, ke:national-id, za:said, rw:national-id)."
+    },
+    "idVerified": {
+      "type": "boolean",
+      "description": "Whether the receiver's government ID was successfully verified against the national registry."
+    },
+    "idOverride": {
+      "type": "boolean",
+      "description": "Whether the ID verification step was bypassed because the verification provider was unavailable."
+    },
+    "idOverrideReason": {
+      "type": "string",
+      "minLength": 10,
+      "description": "The reason recorded when idOverride is true. The operator accepts liability for the override."
+    },
+    "custodianSessionId": {
+      "type": "string",
+      "description": "ID of the OTP-verified custodian session that initiated this handover, if the giver is a non-platform handler."
+    },
+    "evidenceWeight": {
+      "type": "string",
+      "enum": ["very_high", "high", "medium", "low"],
+      "description": "Scored strength of the identity evidence captured at this handover. very_high = ID verified + GPS. high = ID verified. medium = ID provider unavailable, idOverride reason recorded. low = final receiver (no ID required)."
     },
     "proofHash": {
       "type": "string",

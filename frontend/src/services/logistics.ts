@@ -85,6 +85,7 @@ export interface LogisticsSettings {
   ghost_threshold_hours: string;
   business_name: string;
   business_city: string;
+  country: string;
 }
 
 // ── Riders ────────────────────────────────────────────────────────────────

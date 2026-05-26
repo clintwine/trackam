@@ -20,6 +20,7 @@ export interface TokenInfo {
   token: string;
   expiresAt: string;
   giverActorType: ActorType;
+  idScheme: string;
   shipment: {
     id: string;
     goodsDescription: string;
@@ -43,10 +44,13 @@ export interface HandoverEvent {
   shipmentId: string;
   giverActorType: ActorType;
   receiverName: string;
-  receiverBvn: string;
+  receiverIdHash: string;
+  receiverIdScheme: string;
   receiverPhone: string | null;
   receiverActorType: ActorType;
   proofHash: string;
+  idVerified: boolean;
+  idOverride: boolean;
   latitude: number | null;
   longitude: number | null;
   occurredAt: string;
@@ -73,7 +77,7 @@ export const publicHandoverApi = {
   confirm: (body: {
     token: string;
     receiverName: string;
-    receiverBvn: string;
+    receiverGovtId: string;
     receiverPhone?: string;
     receiverActorType: ActorType;
     latitude?: number;

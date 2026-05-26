@@ -12,6 +12,7 @@ const ALLOWED_KEYS = [
   "ghost_threshold_hours",
   "business_name",
   "business_city",
+  "country",
 ];
 
 const DEFAULTS = {
@@ -20,6 +21,7 @@ const DEFAULTS = {
   ghost_threshold_hours: "48",
   business_name: "",
   business_city: "",
+  country: "ng",
 };
 
 async function ensureDefaults(userId) {

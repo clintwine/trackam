@@ -18,6 +18,10 @@
   "giverActorType": "ACTOR_COURIER",
   "receiverName": "Olawale Adeyemi",
   "receiverActorType": "ACTOR_HUB",
+  "receiverIdScheme": "ng:bvn",
+  "idVerified": true,
+  "idOverride": false,
+  "evidenceWeight": "very_high",
   "proofHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "proofAlgorithm": "SHA-256"
 }

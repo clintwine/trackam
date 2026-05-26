@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react"; // Package used in error state
 import { publicHandoverApi, ACTOR_LABELS, type ActorType, type TokenInfo, type HandoverConfirmation } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
+import { IdVerificationInput } from "@/components/id-verification/IdVerificationInput";
+import { getIdSchemeConfig } from "@/lib/idSchemes";
 
 type Phase = "loading" | "token-form" | "waybill-view" | "submitting" | "success" | "error";
 
@@ -21,7 +23,7 @@ export default function ScanPage() {
 
   // Form state
   const [receiverName, setReceiverName] = useState("");
-  const [receiverBvn, setReceiverBvn] = useState("");
+  const [receiverGovtId, setReceiverGovtId] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [receiverActorType, setReceiverActorType] = useState<ActorType>("ACTOR_COURIER");
   const [gpsStatus, setGpsStatus] = useState<"idle" | "fetching" | "ok" | "denied">("idle");
@@ -63,7 +65,7 @@ export default function ScanPage() {
       const result = await publicHandoverApi.confirm({
         token,
         receiverName,
-        receiverBvn,
+        receiverGovtId,
         receiverPhone: receiverPhone || undefined,
         receiverActorType,
         latitude: coords?.lat,
@@ -175,19 +177,13 @@ export default function ScanPage() {
               />
             </div>
 
-            {/* BVN */}
-            <div>
-              <label className="text-xs font-medium text-foreground block mb-1.5">BVN <span className="text-red-500">*</span></label>
-              <input
-                required
-                value={receiverBvn}
-                onChange={(e) => setReceiverBvn(e.target.value.replace(/\D/g, "").slice(0, 11))}
-                placeholder="11-digit BVN"
-                inputMode="numeric"
-                className="w-full rounded-md border border-input bg-white px-3 h-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Used for identity verification. Not shared publicly.</p>
-            </div>
+            {/* Government ID — label/placeholder adapts to operator's country scheme */}
+            <IdVerificationInput
+              config={getIdSchemeConfig(tokenInfo.idScheme?.split(":")[0] ?? "ng")}
+              value={receiverGovtId}
+              onChange={setReceiverGovtId}
+              required
+            />
 
             {/* Phone (optional) */}
             <div>

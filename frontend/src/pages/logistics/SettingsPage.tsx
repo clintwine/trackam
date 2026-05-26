@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { logisticsSettingsApi, type LogisticsSettings } from "@/services/logistics";
+import { COUNTRY_OPTIONS } from "@/lib/idSchemes";
 
 const FIELDS: { key: keyof LogisticsSettings; label: string; description: string; suffix?: string; type?: string }[] = [
   { key: "business_name", label: "Business name", description: "Your trading or company name.", type: "text" },
@@ -9,6 +10,15 @@ const FIELDS: { key: keyof LogisticsSettings; label: string; description: string
   { key: "fuel_efficiency_multiplier", label: "Fuel efficiency", description: "Litres consumed per km (default: 0.12).", suffix: "L/km", type: "number" },
   { key: "ghost_threshold_hours", label: "Ghost threshold", description: "Hours without a status update before a shipment is flagged as ghosting risk.", suffix: "hours", type: "number" },
 ];
+
+// Keys rendered as <select> elements with fixed options
+const SELECT_FIELDS: Record<string, { label: string; description: string; options: readonly { value: string; label: string }[] }> = {
+  country: {
+    label: "Country",
+    description: "Determines the government ID scheme shown on handover scan pages.",
+    options: COUNTRY_OPTIONS,
+  },
+};
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<LogisticsSettings | null>(null);
@@ -57,6 +67,22 @@ export default function SettingsPage() {
               />
               {suffix && <span className="text-xs text-muted-foreground shrink-0">{suffix}</span>}
             </div>
+          </div>
+        ))}
+
+        {Object.entries(SELECT_FIELDS).map(([key, { label, description, options }]) => (
+          <div key={key}>
+            <label className="block text-xs font-medium text-foreground mb-0.5">{label}</label>
+            <p className="text-[11px] text-muted-foreground mb-1.5">{description}</p>
+            <select
+              value={form[key] ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+              className="w-full rounded-md border border-input bg-white px-3 h-9 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {options.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
         ))}
 

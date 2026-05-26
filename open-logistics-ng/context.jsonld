@@ -11,6 +11,7 @@
     "CustodyTransferEvent": "ol:CustodyTransferEvent",
     "Actor":                "ol:Actor",
     "LiteWaybill":          "ol:LiteWaybill",
+    "Operator":             "ol:Operator",
 
     "waybillId":         { "@id": "ol:waybillId",        "@type": "xsd:string" },
     "trackingUrl":       { "@id": "ol:trackingUrl",       "@type": "@id" },
@@ -24,23 +25,40 @@
     "riskScore":         { "@id": "ol:riskScore",         "@type": "xsd:string" },
     "delayFlag":         { "@id": "ol:delayFlag",         "@type": "xsd:boolean" },
     "ghostingFlag":      { "@id": "ol:ghostingFlag",      "@type": "xsd:boolean" },
+    "claimToken":        { "@id": "ol:claimToken",        "@type": "xsd:string" },
+    "status":            { "@id": "ol:status",            "@type": "xsd:string" },
 
     "giverActorType":    { "@id": "ol:giverActorType",    "@type": "xsd:string" },
+    "giverName":         { "@id": "ol:giverName",         "@type": "xsd:string" },
+    "giverPhone":        { "@id": "ol:giverPhone",        "@type": "xsd:string" },
     "receiverActorType": { "@id": "ol:receiverActorType", "@type": "xsd:string" },
     "receiverName":      { "@id": "ol:receiverName",      "@type": "xsd:string" },
+    "receiverPhone":     { "@id": "ol:receiverPhone",     "@type": "xsd:string" },
     "proofHash":         { "@id": "ol:proofHash",         "@type": "xsd:string" },
     "proofAlgorithm":    { "@id": "ol:proofAlgorithm",    "@type": "xsd:string" },
     "latitude":          { "@id": "schema:latitude",      "@type": "xsd:decimal" },
     "longitude":         { "@id": "schema:longitude",     "@type": "xsd:decimal" },
+
+    "receiverIdScheme":   { "@id": "ol:receiverIdScheme",   "@type": "xsd:string" },
+    "idVerified":         { "@id": "ol:idVerified",         "@type": "xsd:boolean" },
+    "idOverride":         { "@id": "ol:idOverride",         "@type": "xsd:boolean" },
+    "idOverrideReason":   { "@id": "ol:idOverrideReason",   "@type": "xsd:string" },
+    "custodianSessionId": { "@id": "ol:custodianSessionId", "@type": "xsd:string" },
+    "evidenceWeight":     { "@id": "ol:evidenceWeight",     "@type": "xsd:string" },
+
+    "currentCustodian":  { "@id": "ol:currentCustodian",  "@type": "@id" },
+    "operatorId":        { "@id": "ol:operatorId",        "@type": "xsd:string" },
+    "trackingEndpoint":  { "@id": "ol:trackingEndpoint",  "@type": "@id" },
+    "custodyType":       { "@id": "ol:custodyType",       "@type": "xsd:string" },
 
     "ACTOR_SENDER":   "ol:ACTOR_SENDER",
     "ACTOR_COURIER":  "ol:ACTOR_COURIER",
     "ACTOR_HUB":      "ol:ACTOR_HUB",
     "ACTOR_RECEIVER": "ol:ACTOR_RECEIVER",
 
-    "bizStep":      { "@id": "epcis:bizStep",   "@type": "@id" },
-    "disposition":  { "@id": "epcis:disposition","@type": "@id" },
-    "eventTime":    { "@id": "epcis:eventTime",  "@type": "xsd:dateTimeStamp" },
-    "epcList":      { "@id": "epcis:epcList",    "@container": "@set" }
+    "bizStep":      { "@id": "epcis:bizStep",    "@type": "@id" },
+    "disposition":  { "@id": "epcis:disposition", "@type": "@id" },
+    "eventTime":    { "@id": "epcis:eventTime",   "@type": "xsd:dateTimeStamp" },
+    "epcList":      { "@id": "epcis:epcList",     "@container": "@set" }
   }
 }
