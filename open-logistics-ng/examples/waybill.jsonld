@@ -1,0 +1,33 @@
+{
+  "@context": [
+    "https://ref.gs1.org/standards/epcis/epcis-context.jsonld",
+    "https://open-logistics-ng.github.io/schema/context.jsonld"
+  ],
+  "@type": "LiteWaybill",
+  "waybillId": "WB-20260526-K7M2P9",
+  "epc": "urn:ol:waybill:a3f9b2c1-4d5e-6f78-90ab-cdef12345678",
+  "trackingUrl": "https://track.oli.ng/WB-20260526-K7M2P9",
+  "claimToken": "C8A3F92D",
+  "status": "in_transit",
+  "goodsDescription": "Electronics — laptop and accessories",
+  "pickupLocation": "Ikeja, Lagos",
+  "deliveryLocation": "Wuse 2, Abuja",
+  "estimatedWeightKg": 3.5,
+  "declaredValueNgn": 450000,
+  "sender": {
+    "name": "Adebayo Stores",
+    "phone": "08012345678"
+  },
+  "receiver": {
+    "name": "Ngozi Okafor",
+    "phone": "08098765432",
+    "address": "Plot 14, Adetokunbo Ademola Crescent, Wuse 2, Abuja"
+  },
+  "currentCustodian": {
+    "@type": "ol:Operator",
+    "ol:operatorId": "op_7f3a2c91",
+    "ol:trackingEndpoint": "https://trackam-carrier-b.up.railway.app",
+    "ol:custodyType": "RIDER_IN_TRANSIT"
+  },
+  "createdAt": "2026-05-26T08:00:00+01:00"
+}

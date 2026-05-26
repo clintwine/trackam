@@ -1,68 +1,64 @@
 # PRD
 
-## Phase 0 product definition
+## What trackam is
 
-### Why this template exists
-- Provide a reusable workspace/account/admin baseline that teams can extend without starting auth, admin shells, and account plumbing from scratch.
-- Keep the template truthful about what already exists before adding new domains.
-- Make the Phase 0 hardening backlog explicit so maintainers can close drift methodically.
+Trackam is an open source operator platform for logistics companies. It gives operators a dashboard to dispatch shipments, manage riders and routes, and participate in the OLI network — a shared trust layer for cross-operator custody verification.
 
-### Product goals
-- Give scaffold adopters a runnable React and Express baseline with auth, roles, sessions, notifications, settings, and dashboard shells.
-- Give maintainers a doc and harness set that matches real code, scripts, and validations.
-- Keep future expansion optional instead of implying a product roadmap the runtime does not ship.
+The problem it solves: when goods move across multiple independent companies, trust breaks. There is no standard way to prove who had what, when, and in what condition. Disputes get resolved by whoever has the better argument, not the better evidence.
+
+Trackam's answer is the Proof of Handover (PoH) chain — every custody transfer is a cryptographic event with verified receiver identity, GPS coordinates, and a tamper-evident proof hash. The chain is append-only.
 
 ## Target users
-| User | What they need | Current support |
-|---|---|---|
-| Scaffold adopter or product team | A reusable baseline for account and admin features | Supported by the current runtime and Phase 0 docs |
-| Admin operator | One place to review users, roles, and events | Partial via the admin dashboard |
-| Authenticated end user | Account visibility, notifications, device history, session history | Partial via the user dashboard |
-| Template maintainer | Clear architecture, contract, and hardening priorities | Supported by the current doc set |
 
-## Current implementation reality
-- Implemented today:
-  - auth
-  - users
-  - roles
-  - notifications
-  - events
-  - devices
-  - sessions
-  - settings
-  - public landing
-  - user dashboard shell
-  - admin dashboard shell
-- Deferred or incomplete today:
-  - hardened user write boundary
-  - narrowed event ingestion surface
-  - mobile dashboard navigation
-  - stronger page-level error states
+| User | What they need |
+|---|---|
+| Logistics operator / business owner | Dashboard to dispatch shipments, manage riders, see costs, and monitor delivery performance |
+| Dispatcher / operations staff | Quick dispatch, route lookup, rider assignment, shipment status updates |
+| Rider / courier | OTP-verified custodian session to initiate and confirm handovers without a platform account |
+| Hub staff | Same as rider — OTP session, scan-in confirmation |
+| End receiver | Confirm receipt via handover QR or link — no account required |
+| Network admin (OLI) | Cross-operator dispute resolution, fee management, operator onboarding |
 
-## Phase 0 scope
+## Core product goals
 
-### In scope
-- Current-runtime documentation and harness truthfulness
-- Template governance and change routing
-- Schema, bootstrap, and workflow alignment
-- API contract truthfulness
-- UI architecture truthfulness
-- Small runtime fixes that remove obvious placeholder residue
+1. Give any logistics operator a production-ready dispatch platform they can self-host or deploy to Railway in under an hour
+2. Make every custody transfer in the network cryptographically verifiable — from the moment goods leave the sender to final delivery
+3. Enable multi-operator shipments without requiring operators to share a database or trust each other blindly
+4. Give operators honest cost accounting — fuel, rider fees, and total logistics spend per shipment
+5. Surface risk early — ghosting detection, delayed shipment flags, risk scoring before dispatch
 
-### Out of scope
-- New commerce, storefront, catalog, cart, checkout, order, payment, inventory, shipping, review, or CMS features
-- Large runtime refactors
-- Rewriting applied baseline migrations
-- Treating sibling app code as the source of truth for this template
+## What is open source
 
-## Phase 0 user stories
-- When I open this template as an adopter, I want the docs to describe the runtime that actually exists, so I can build on it without rediscovering the code.
-- When I work in the admin dashboard, I want the current modules and gaps documented clearly, so I do not assume missing operations already exist.
-- When I work in the user dashboard, I want auth, notifications, and security surfaces to be described truthfully, so UI work stays scoped.
-- When I maintain the template, I want script, workflow, and schema behavior made explicit, so I can harden them without rewriting history.
+The operator-facing platform — everything in this repository:
+- Dispatch dashboard
+- Rider and route management
+- Shipment lifecycle and status log
+- Dispatch runs
+- OLI Switch proxy (waybill, handover, custodian, disputes)
+- Cost accounting and risk scoring
 
-## Phase 0 success criteria
-- Top-level docs and current-reality docs all describe the same scaffold.
-- The local skill and prompt-routing harness only references surviving files and relevant skills.
-- Schema, API, UI, validation, and release docs stop claiming behavior that the code does not implement.
-- Remaining gaps are documented as gaps, not implied features.
+## What stays private
+
+The OLI Switch — the trust and settlement infrastructure:
+- Proof of Handover chain
+- Government ID verification
+- Prepaid operator wallets
+- Fee settlement
+- Dispute resolution
+- Cross-operator webhook delivery
+
+This separation is intentional. The operator tooling is open because network effects require adoption. The trust infrastructure is private because it is the network's moat.
+
+## Success criteria
+
+- An operator can deploy trackam, register with OLI Switch, and dispatch their first verified shipment without engineering support
+- A multi-operator waybill with three independent carriers produces an auditable, dispute-defensible handover chain
+- When a dispute is raised, the evidence is already captured — no reconstruction from memory or paper
+- Operators can see exactly what they are being charged and why
+
+## Out of scope (current)
+
+- Consumer-facing tracking pages (this is a B2B operator tool)
+- Native mobile apps
+- Route optimization or logistics marketplace features
+- Storefront, catalog, or e-commerce

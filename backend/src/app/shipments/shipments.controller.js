@@ -5,6 +5,9 @@ const asyncHandler = require("../../core/middlewares/asyncHandler");
 const ShipmentsService = require("./shipments.service");
 
 // GS1 CBV bizStep mapping
+const OLI_OPERATOR_ID       = process.env.OLI_OPERATOR_ID       || "";
+const OLI_TRACKING_ENDPOINT = process.env.OLI_TRACKING_ENDPOINT || "";
+
 const BIZ_STEP = {
   pending:     "urn:epcglobal:cbv:bizstep:staging_outbound",
   in_transit:  "urn:epcglobal:cbv:bizstep:in_transit",
@@ -12,6 +15,7 @@ const BIZ_STEP = {
   delivered:   "urn:epcglobal:cbv:bizstep:delivering",
   failed:      "urn:epcglobal:cbv:bizstep:void_shipping",
   ghosted:     "urn:ol:cbv:bizstep:ghosted",
+  disputed:    "urn:ol:cbv:bizstep:ghosted",
 };
 
 const DISPOSITION = {
@@ -21,10 +25,20 @@ const DISPOSITION = {
   delivered:   "urn:epcglobal:cbv:disp:completeness_verified",
   failed:      "urn:epcglobal:cbv:disp:no_pedigree_match",
   ghosted:     "urn:ol:cbv:disp:ghosted",
+  disputed:    "urn:ol:cbv:disp:ghosted",
 };
 
+// custodyType: in_transit shipments with a rider are RIDER_IN_TRANSIT; everything else is OPERATOR_HUB
+function custodyType(s) {
+  return (s.status === "in_transit" && s.riderId) ? "RIDER_IN_TRANSIT" : "OPERATOR_HUB";
+}
+
 function toJsonLd(s, baseUrl) {
-  return {
+  const trackingBase = OLI_TRACKING_ENDPOINT || baseUrl;
+  // Use the waybill UUID when available so multi-operator legs share the same EPC
+  const epc = s.waybillId ? `urn:ol:waybill:${s.waybillId}` : `urn:ol:waybill:${s.id}`;
+
+  const doc = {
     "@context": [
       "https://ref.gs1.org/standards/epcis/epcis-context.jsonld",
       "https://raw.githubusercontent.com/open-logistics-ng/schema/main/context.jsonld",
@@ -33,7 +47,7 @@ function toJsonLd(s, baseUrl) {
     "@id": `${baseUrl}/api/shipments/${s.id}`,
     "eventTime": s.lastStatusUpdateAt,
     "eventTimeZoneOffset": "+01:00",
-    "epcList": [`urn:ol:waybill:${s.id}`],
+    "epcList": [epc],
     "action": "OBSERVE",
     "bizStep": BIZ_STEP[s.status] || BIZ_STEP.pending,
     "disposition": DISPOSITION[s.status] || DISPOSITION.pending,
@@ -56,6 +70,19 @@ function toJsonLd(s, baseUrl) {
     "ol:delayFlag": s.delayFlag,
     "ol:ghostingFlag": s.ghostingFlag,
   };
+
+  // currentCustodian: included when this operator is the active custodian.
+  // The switch follows this pointer for federated tracking resolution.
+  if (OLI_OPERATOR_ID && ["pending", "in_transit", "handed_over"].includes(s.status)) {
+    doc["ol:currentCustodian"] = {
+      "@type": "ol:Operator",
+      "ol:operatorId": OLI_OPERATOR_ID,
+      "ol:trackingEndpoint": trackingBase,
+      "ol:custodyType": custodyType(s),
+    };
+  }
+
+  return doc;
 }
 
 router.use(localAuthMiddleware);

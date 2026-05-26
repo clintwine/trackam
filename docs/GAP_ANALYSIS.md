@@ -1,46 +1,63 @@
 # Gap Analysis
 
-## Executive summary
-- `web_app` now has a manifest-backed, migration-backed Phase 0 baseline.
-- The remaining gaps are runtime hardening and UX polish gaps, not missing commerce features.
+## Current state summary
 
-## Current runtime baseline
-- Backend:
-  - auth
-  - users
-  - roles
-  - notifications
-  - events
-  - devices
-  - sessions
-  - settings
-- Frontend:
-  - public landing
-  - auth pages
-  - user dashboard
-  - admin dashboard
-- Schema path:
-  - primary command `npm run db:migrate`
-  - bootstrap alias `npm run db:init`
-  - seed commands `npm run db:seed`, `npm run db:seed:bootstrap-admin`, and `npm run db:seed:demo`
+Trackam has a working operator platform with full dispatch, rider management, multi-operator waybills, PoH chain, custodian OTP sessions, disputes, and cost accounting. The OLI Switch integration is live. Core infrastructure is production-grade.
 
-## Gap inventory
-| Area | Current state | Gap | Recommended target |
-|---|---|---|---|
-| User write contract | Self and admin share `PUT /api/users/:id` | Write surface is broader than a hardened baseline should allow | Split or narrow user mutation paths |
-| Event ingestion | Public `GET` and `POST /api/events` | Operational surface is under-protected | Move write access behind authenticated or signed ingestion |
-| Frontend bootstrap | `AuthProvider` and loaders both fetch auth state | Duplicate requests and extra coupling remain | Consolidate auth bootstrap ownership |
-| Mobile dashboard UX | Desktop sidebars are hidden on small screens | No mobile nav pattern exists | Add a drawer or sheet navigation pattern |
-| Page quality | Some pages still carry placeholder copy and thin error handling | UX polish lags the documented baseline | Tighten copy and explicit error states incrementally |
-| Validation coverage | Frontend lint, typecheck, tests, and build exist; backend only exposes tests | Backend lint, typecheck, and build scripts are unavailable | Keep reporting this honestly until scripts are added |
+## Open gaps
 
-## What was resolved
-- `template.json` now exists, so the template can participate in the manifest-driven scaffolder flow.
-- The backend package now exposes `db:migrate`, `db:seed:bootstrap-admin`, and `db:seed:demo`.
-- `db:init` now delegates to the migration runner instead of maintaining a separate schema path.
-- Legacy registry and per-user module metadata were removed from the active runtime surface.
-- Core docs and harness files now point to repo-true frontend guidance paths under `frontend/docs/`.
+### OLI Switch integration
 
-## What is not a Phase 0 gap
-- Missing storefront, catalog, cart, checkout, order, payment, inventory, shipping, review, or CMS features.
-- Those are out of scope for this template until the runtime actually adds them.
+| Gap | Detail |
+|---|---|
+| Webhook dead letter visibility | No UI to see failed webhook deliveries or retry them manually |
+| Custodian session visibility | No operator-facing view of active/expired custodian sessions for a shipment |
+| Per-operator rate limiting | Rate limiting is currently global on the switch, not per-operator |
+| Idempotency keys | Critical write endpoints (initiate handover, confirm handover) have no idempotency key support |
+
+### Waybill and shipment
+
+| Gap | Detail |
+|---|---|
+| Waybill search and filter | No `?waybillNumber=`, `?status=`, `?dateFrom=`, `?dateTo=` filters on the waybill list |
+| Waybill cancellation | No `POST /api/waybill/:id/cancel` endpoint |
+| OTP brute force protection | No lockout after repeated failed OTP attempts on custodian sessions |
+
+### Dispute lifecycle
+
+| Gap | Detail |
+|---|---|
+| Dispute timeout | No auto-close or admin alert for disputes stale beyond 30 days |
+
+### Operator tooling
+
+| Gap | Detail |
+|---|---|
+| Fee invoice / billing statement | No period-based exportable fee summary (PDF or CSV) |
+| Multi-admin support | Admin auth uses a single `ADMIN_SECRET`; no per-admin audit trail |
+
+### Live tracking
+
+| Gap | Detail |
+|---|---|
+| Decentralized tracking layer | The federated live tracking protocol (JSON-LD stream, per-custody-session credentials, signed GPS payloads) is designed but not yet implemented |
+| Condition monitoring | No environmental parameter (temperature, humidity) support for cold chain operators |
+
+### Platform hardening
+
+| Gap | Detail |
+|---|---|
+| Mobile dashboard navigation | No drawer/sheet nav pattern for small screens |
+| Event ingestion | Public `POST /api/events` is still open |
+| Backend lint and typecheck scripts | Not yet present |
+
+## What is not a gap
+
+- The PoH chain — implemented and production-grade
+- Atomic handover token claiming (TOCTOU-safe) — implemented
+- Wallet, fees, and disputes on the switch — implemented
+- Webhook retry queue with exponential backoff — implemented
+- BVN verification with bypass and caching — implemented
+- Graceful shutdown — implemented
+- Phone normalization — implemented
+- SSE heartbeat and zombie connection cleanup — implemented

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://open-logistics-ng.github.io/schema/schemas/waybill.json",
   "title": "OLI Waybill",
-  "description": "A shipping waybill conforming to the Open Logistics Interconnect standard. Includes a GS1-compatible EPC identifier and a QR-resolvable tracking URL.",
+  "description": "A shipping waybill conforming to the Open Logistics Interconnect standard. Includes a GS1-compatible EPC identifier, a physical claim token, and a currentCustodian pointer for federated tracking resolution.",
   "type": "object",
   "required": [
     "@context", "@type", "waybillId", "trackingUrl",
@@ -32,6 +32,36 @@
       "pattern": "^urn:ol:waybill:[a-zA-Z0-9_-]+$",
       "description": "GS1-style Electronic Product Code for this waybill."
     },
+    "claimToken": {
+      "type": "string",
+      "description": "Short alphanumeric token printed on the physical waybill. Single-use. Proves physical handoff from sender to first operator without requiring digital auth."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in_transit", "handed_over", "delivered", "failed", "ghosted", "disputed"],
+      "description": "Current status of the shipment leg held by the responding operator."
+    },
+    "currentCustodian": {
+      "type": "object",
+      "description": "Pointer to the operator currently holding custody. Used by the OLI Switch for federated tracking resolution — the switch queries this operator's trackingEndpoint to get live location.",
+      "required": ["operatorId", "trackingEndpoint"],
+      "properties": {
+        "operatorId": {
+          "type": "string",
+          "description": "The operator's UUID in the OLI Switch registry."
+        },
+        "trackingEndpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL of this operator's trackam instance. The switch appends /api/shipments/:id with Accept: application/ld+json to resolve current tracking state."
+        },
+        "custodyType": {
+          "type": "string",
+          "enum": ["OPERATOR_HUB", "RIDER_IN_TRANSIT"],
+          "description": "Whether the current custodian is a static hub/warehouse or a rider in active transit. Determines how the switch resolves live location."
+        }
+      }
+    },
     "goodsDescription": {
       "type": "string",
       "minLength": 1
@@ -53,9 +83,7 @@
       "minimum": 0,
       "description": "Declared goods value in Nigerian Naira."
     },
-    "sender": {
-      "$ref": "#/$defs/Actor"
-    },
+    "sender": { "$ref": "#/$defs/Actor" },
     "receiver": {
       "allOf": [
         { "$ref": "#/$defs/Actor" },
