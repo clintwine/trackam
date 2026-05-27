@@ -8,9 +8,9 @@ interface ChainEvent {
   id: string;
   shipmentId: string;
   waybillId: string;
-  giverName: string | null;
+  // Names are stripped from the public chain — only actor types are public.
+  // Full names are served via the authenticated chain endpoint (claimed operator / verified party).
   giverActorType: ActorType;
-  receiverName: string;
   receiverActorType: ActorType;
   proofHash: string;
   latitude: number | null;
@@ -170,13 +170,7 @@ export default function TrackWaybillPage() {
                           <div className="flex items-start justify-between gap-2 mb-1.5">
                             <div className="min-w-0">
                               <p className="text-xs font-semibold text-foreground truncate">
-                                {event.receiverName}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {event.giverName
-                                  ? `${event.giverName} (${ACTOR_LABELS[event.giverActorType]})`
-                                  : ACTOR_LABELS[event.giverActorType]
-                                }{" "}→ {ACTOR_LABELS[event.receiverActorType]}
+                                {ACTOR_LABELS[event.giverActorType]} → {ACTOR_LABELS[event.receiverActorType]}
                               </p>
                             </div>
                             {event.latitude != null && event.longitude != null && (
