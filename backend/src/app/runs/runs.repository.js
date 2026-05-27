@@ -92,7 +92,7 @@ async function getById(runId, userId) {
        (SELECT COUNT(*) FROM handover_events he WHERE he.shipment_id = s.id)::int AS handover_count
      FROM dispatch_run_legs drl
      JOIN shipments s ON s.id = drl.shipment_id
-     LEFT JOIN waybills w ON w.id = s.waybill_id
+     LEFT JOIN lite_waybills w ON w.id = s.waybill_id
      WHERE drl.run_id = $1
      ORDER BY drl.added_at`,
     [runId]
