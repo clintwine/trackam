@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Zap, X, ChevronRight, Loader2, FileText, CheckCircle2, ArrowRight, Link2 } from "lucide-react";
+import { Zap, X, ChevronRight, Loader2, FileText, CheckCircle2, ArrowRight, Link2, Truck, Search, Plus } from "lucide-react";
 import { routesApi, ridersApi, shipmentsApi, type Route, type Rider } from "@/services/logistics";
-import { waybillApi } from "@/services/handover";
+import { waybillApi, type OperatorWaybill } from "@/services/handover";
+import { runsApi, type DispatchRun } from "@/services/runs";
 
 interface Props {
   onDispatched?: () => void;
 }
 
 type Step = "route" | "confirm";
-type Tab = "dispatch" | "claim" | "join";
+type Tab = "dispatch" | "claim" | "join" | "waybill";
+type WaybillStep = "pick-waybill" | "pick-run";
 
 export function QuickDispatch({ onDispatched }: Props) {
   const navigate = useNavigate();
@@ -45,6 +47,17 @@ export function QuickDispatch({ onDispatched }: Props) {
   const [joinError, setJoinError] = useState("");
   const [joinedShipmentId, setJoinedShipmentId] = useState<string | null>(null);
 
+  // Dispatch waybill tab state
+  const [waybillStep, setWaybillStep] = useState<WaybillStep>("pick-waybill");
+  const [waybills, setWaybills] = useState<OperatorWaybill[]>([]);
+  const [waybillSearch, setWaybillSearch] = useState("");
+  const [waybillsLoading, setWaybillsLoading] = useState(false);
+  const [selectedWaybill, setSelectedWaybill] = useState<OperatorWaybill | null>(null);
+  const [loadingRuns, setLoadingRuns] = useState<DispatchRun[]>([]);
+  const [runsLoading, setRunsLoading] = useState(false);
+  const [waybillAssigning, setWaybillAssigning] = useState(false);
+  const [waybillError, setWaybillError] = useState("");
+
   useEffect(() => {
     if (open) {
       Promise.all([routesApi.list(), ridersApi.list()]).then(([r, ri]) => {
@@ -53,6 +66,15 @@ export function QuickDispatch({ onDispatched }: Props) {
       });
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && tab === "waybill") {
+      setWaybillsLoading(true);
+      waybillApi.list()
+        .then((data) => setWaybills(data.filter((w) => w.shipmentId && !w.runId)))
+        .finally(() => setWaybillsLoading(false));
+    }
+  }, [open, tab]);
 
   function openModal() {
     setTab("dispatch");
@@ -74,6 +96,10 @@ export function QuickDispatch({ onDispatched }: Props) {
     setJoinProofHash("");
     setJoinError("");
     setJoinedShipmentId(null);
+    setWaybillStep("pick-waybill");
+    setSelectedWaybill(null);
+    setWaybillSearch("");
+    setWaybillError("");
     setOpen(true);
   }
 
@@ -111,6 +137,42 @@ export function QuickDispatch({ onDispatched }: Props) {
       setJoinError(msg);
     } finally {
       setJoinSubmitting(false);
+    }
+  }
+
+  async function handleWaybillSelect(waybill: OperatorWaybill) {
+    setSelectedWaybill(waybill);
+    setWaybillError("");
+    setWaybillStep("pick-run");
+    setRunsLoading(true);
+    try {
+      const all = await runsApi.list();
+      setLoadingRuns(all.filter((r) => r.status === "loading"));
+    } finally {
+      setRunsLoading(false);
+    }
+  }
+
+  async function handleAssignToRun(runId: string | null) {
+    if (!selectedWaybill?.shipmentId) return;
+    setWaybillAssigning(true);
+    setWaybillError("");
+    try {
+      let targetRunId = runId;
+      if (!targetRunId) {
+        // Create a new loading run, then navigate to it
+        const newRun = await runsApi.create({});
+        targetRunId = newRun.id;
+      }
+      await runsApi.addLeg(targetRunId, selectedWaybill.shipmentId);
+      setOpen(false);
+      navigate(`/dashboard/runs/${targetRunId}`);
+      onDispatched?.();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to assign to run.";
+      setWaybillError(msg);
+    } finally {
+      setWaybillAssigning(false);
     }
   }
 
@@ -217,6 +279,18 @@ export function QuickDispatch({ onDispatched }: Props) {
                   >
                     <Link2 className="h-3.5 w-3.5" />
                     Join Leg
+                  </button>
+                  <button
+                    onClick={() => { setTab("waybill"); setWaybillStep("pick-waybill"); setSelectedWaybill(null); setWaybillError(""); }}
+                    className={[
+                      "flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors",
+                      tab === "waybill"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    <Truck className="h-3.5 w-3.5" />
+                    Add to Run
                   </button>
                 </div>
                 <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground mb-2">
@@ -376,6 +450,141 @@ export function QuickDispatch({ onDispatched }: Props) {
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary h-9 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60 transition-colors"
                 >
                   {joinSubmitting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Joining…</> : "Join leg →"}
+                </button>
+              </div>
+            )}
+
+            {/* Add to Run tab — pick a claimed waybill (no run yet) then pick/create a run */}
+            {tab === "waybill" && waybillStep === "pick-waybill" && (
+              <div className="p-4 overflow-y-auto flex flex-col gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Select a claimed waybill that hasn't been added to a run yet.
+                </p>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    value={waybillSearch}
+                    onChange={(e) => setWaybillSearch(e.target.value)}
+                    placeholder="Search waybills…"
+                    className="w-full rounded-md border border-input bg-white pl-8 pr-3 h-9 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                {waybillsLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => <div key={i} className="h-14 rounded-lg bg-secondary/50 animate-pulse" />)}
+                  </div>
+                ) : waybills.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">No unassigned waybills.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">Claim a waybill first, then add it to a run here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                    {waybills
+                      .filter((w) => {
+                        if (!waybillSearch) return true;
+                        const q = waybillSearch.toLowerCase();
+                        return (
+                          w.waybillNumber.toLowerCase().includes(q) ||
+                          w.goodsDescription.toLowerCase().includes(q) ||
+                          w.senderName.toLowerCase().includes(q) ||
+                          w.receiverName.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((w) => (
+                        <button
+                          key={w.id}
+                          onClick={() => handleWaybillSelect(w)}
+                          className="w-full flex items-start justify-between rounded-lg border border-border bg-white p-3 text-left hover:border-primary/40 hover:bg-accent/30 transition-colors gap-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-mono font-semibold text-foreground truncate">{w.waybillNumber}</p>
+                            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              {w.senderName} → {w.receiverName}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">{w.goodsDescription}</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "waybill" && waybillStep === "pick-run" && selectedWaybill && (
+              <div className="p-4 overflow-y-auto flex flex-col gap-3">
+                {/* Selected waybill summary */}
+                <div className="rounded-lg bg-secondary p-3 flex items-start gap-2">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono font-semibold text-foreground">{selectedWaybill.waybillNumber}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {selectedWaybill.senderName} → {selectedWaybill.receiverName} · {selectedWaybill.goodsDescription}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs font-medium text-foreground">Add to which run?</p>
+
+                {runsLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(2)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-secondary/50 animate-pulse" />)}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {/* Existing loading runs */}
+                    {loadingRuns.map((run) => (
+                      <button
+                        key={run.id}
+                        onClick={() => handleAssignToRun(run.id)}
+                        disabled={waybillAssigning}
+                        className="w-full flex items-center justify-between rounded-lg border border-border bg-white p-3 text-left hover:border-primary/40 hover:bg-accent/30 transition-colors disabled:opacity-60"
+                      >
+                        <div>
+                          <p className="text-xs font-medium text-foreground">
+                            {run.name || <span className="text-muted-foreground italic">Unnamed run</span>}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {run.legCount} leg{run.legCount !== 1 ? "s" : ""} · loading
+                          </p>
+                        </div>
+                        {waybillAssigning
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />
+                          : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                      </button>
+                    ))}
+
+                    {/* Create new run option */}
+                    <button
+                      onClick={() => handleAssignToRun(null)}
+                      disabled={waybillAssigning}
+                      className="w-full flex items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-accent/20 p-3 text-left hover:bg-accent/40 transition-colors disabled:opacity-60"
+                    >
+                      <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <div>
+                        <p className="text-xs font-medium text-primary">Create new run</p>
+                        <p className="text-[11px] text-muted-foreground">Start a new dispatch run with this waybill</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                {waybillError && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                    {waybillError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {tab === "waybill" && waybillStep === "pick-run" && (
+              <div className="flex gap-2 px-4 py-3 border-t border-border bg-white shrink-0">
+                <button
+                  onClick={() => { setWaybillStep("pick-waybill"); setWaybillError(""); }}
+                  className="flex-none rounded-md border border-border bg-white px-3 h-9 text-xs font-medium text-foreground hover:bg-secondary transition-colors"
+                >
+                  Back
                 </button>
               </div>
             )}

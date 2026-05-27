@@ -119,6 +119,8 @@ app.use("/api/logistics/settings", rateLimiter, require("./app/logistics_setting
 const { createOliProxy } = require("./app/oli/oli.proxy");
 const localAuthOptional  = require("./core/middlewares/localAuthOptional");
 const oliProxy = createOliProxy();
+// Local waybill router intercepts /mine for run enrichment; all others fall through to proxy
+app.use("/api/waybill",   rateLimiter, require("./app/waybill/waybill.controller"));
 app.use("/api/waybill",   rateLimiter, localAuthOptional, oliProxy);
 app.use("/api/handover",  rateLimiter, localAuthOptional, oliProxy);
 app.use("/api/custodian", rateLimiter, oliProxy);
