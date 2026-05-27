@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react"; // Package used in error state
+import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
 import { publicHandoverApi, ACTOR_LABELS, type ActorType, type TokenInfo, type HandoverConfirmation } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
 import { IdVerificationInput } from "@/components/id-verification/IdVerificationInput";
 import { getIdSchemeConfig } from "@/lib/idSchemes";
 
-type Phase = "loading" | "token-form" | "waybill-view" | "submitting" | "success" | "error";
+type Phase = "loading" | "token-form" | "submitting" | "success" | "error";
 
 
 export default function ScanPage() {
@@ -17,7 +17,6 @@ export default function ScanPage() {
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
-  const [waybill] = useState<Record<string, unknown> | null>(null);
   const [confirmation, setConfirmation] = useState<HandoverConfirmation | null>(null);
   const [error, setError] = useState("");
 
@@ -101,44 +100,6 @@ export default function ScanPage() {
             </div>
             <p className="text-sm font-medium text-foreground">Something went wrong</p>
             <p className="text-xs text-muted-foreground max-w-xs">{error}</p>
-          </div>
-        )}
-
-        {/* Waybill tracking view */}
-        {phase === "waybill-view" && waybill && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-border bg-white p-5 space-y-3">
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Waybill</p>
-              <p className="text-base font-semibold text-foreground">{waybill.waybillNumber as string}</p>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex gap-2 items-start">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">From</p>
-                    <p className="text-xs font-medium">{waybill.pickupLocation as string}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 items-start">
-                  <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">To</p>
-                    <p className="text-xs font-medium">{waybill.deliveryLocation as string}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="border-t border-border pt-3">
-                <p className="text-xs text-muted-foreground">Cargo</p>
-                <p className="text-sm font-medium">{waybill.goodsDescription as string}</p>
-              </div>
-              <div className="border-t border-border pt-3">
-                <p className="text-xs text-muted-foreground">Receiver</p>
-                <p className="text-sm font-medium">{waybill.receiverName as string}</p>
-                <p className="text-xs text-muted-foreground">{waybill.receiverAddress as string}</p>
-              </div>
-            </div>
-            <p className="text-[11px] text-center text-muted-foreground">
-              Generated via Open Logistics Interconnect (OLI)
-            </p>
           </div>
         )}
 

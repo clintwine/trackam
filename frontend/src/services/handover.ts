@@ -20,13 +20,13 @@ export interface TokenInfo {
   token: string;
   expiresAt: string;
   giverActorType: ActorType;
+  giverName: string | null;
   idScheme: string;
   shipment: {
     id: string;
     goodsDescription: string;
     pickupLocation: string;
     deliveryLocation: string;
-    distanceKm: number;
     status: string;
   };
 }

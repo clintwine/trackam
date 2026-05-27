@@ -46,9 +46,7 @@ export default function DriverHandoverPage() {
   // Full waybill chain (cross-operator visibility)
   const [waybillChain, setWaybillChain] = useState<Array<{
     id: string;
-    giverName: string | null;
     giverActorType: ActorType;
-    receiverName: string;
     receiverActorType: ActorType;
     proofHash: string;
     occurredAt: string;
@@ -336,11 +334,9 @@ export default function DriverHandoverPage() {
                           {idx + 1}
                         </div>
                         <div className="flex-1 min-w-0 py-0.5">
-                          <p className="text-xs font-medium text-foreground truncate">{event.receiverName}</p>
+                          <p className="text-xs font-medium text-foreground truncate">{ACTOR_LABELS[event.receiverActorType]}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {event.giverName
-                              ? `${event.giverName} (${ACTOR_LABELS[event.giverActorType]})`
-                              : ACTOR_LABELS[event.giverActorType]}{" "}→ {ACTOR_LABELS[event.receiverActorType]}
+                            {ACTOR_LABELS[event.giverActorType]}{" "}→ {ACTOR_LABELS[event.receiverActorType]}
                           </p>
                           <p className="font-mono text-[9px] text-muted-foreground/70 mt-0.5">
                             {event.proofHash.slice(0, 12)}… · {new Date(event.occurredAt).toLocaleDateString("en-NG", { day: "2-digit", month: "short" })}
