@@ -96,10 +96,6 @@ export const publicWaybillApi = {
     axios.get(`${publicBase()}/api/waybill/${id}/chain`).then((r) => r.data),
   lookup: (waybillNumber: string) =>
     axios.get(`${publicBase()}/api/waybill/lookup/${encodeURIComponent(waybillNumber)}`).then((r) => r.data),
-  requestSenderOtp: (phone: string) =>
-    axios.post<{ verificationId: string }>(`${publicBase()}/api/waybill/request-sender-otp`, { phone }).then((r) => r.data),
-  verifySenderOtp: (verificationId: string, otp: string) =>
-    axios.post<{ verificationToken: string; phone: string }>(`${publicBase()}/api/waybill/verify-sender-otp`, { verificationId, otp }).then((r) => r.data),
 };
 
 export interface OperatorWaybill {
