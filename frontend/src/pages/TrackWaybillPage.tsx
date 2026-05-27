@@ -85,10 +85,10 @@ export default function TrackWaybillPage() {
     setVerifyError("");
     try {
       await waybillVerifyApi.requestOtp(id, verifyPhone);
-      // Always advance — anti-enumeration (server returns sent:true even on mismatch)
       setVerifyPhase("otp");
-    } catch {
-      setVerifyError("Could not send code. Try again.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setVerifyError(msg || "Could not send code. Try again.");
     } finally {
       setVerifyWorking(false);
     }
