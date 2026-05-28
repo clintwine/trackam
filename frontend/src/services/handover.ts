@@ -62,6 +62,15 @@ export const handoverApi = {
 
   getEvents: (shipmentId: string) =>
     apiClient.get<HandoverEvent[]>(`/api/handover/shipment/${shipmentId}/events`).then((r) => r.data),
+
+  initiateBulk: (body: {
+    shipmentIds: string[];
+    receiverActorType: ActorType;
+    giverActorType?: ActorType;
+    runId?: string;
+    internal?: boolean;
+  }) =>
+    apiClient.post<BulkHandoverInitiated>("/api/handover/initiate-bulk", body).then((r) => r.data),
 };
 
 // Public API calls — no auth header, using raw axios pointed at same base
@@ -159,18 +168,64 @@ export const waybillApi = {
     axios.get<{ id: string }>(`${publicBase()}/api/waybill/lookup/${encodeURIComponent(waybillNumber)}`).then((r) => r.data),
 };
 
+export interface RunShipmentItem {
+  shipmentId: string;
+  waybillId: string | null;
+  waybillNumber: string | null;
+  goodsDescription: string | null;
+  pickupLocation: string | null;
+  deliveryLocation: string | null;
+  recipientName: string | null;
+  recipientPhone: string | null;
+  shipmentValue: number;
+}
+
 export interface CustodyInfo {
   sessionId: string;
   name: string;
   actorType: ActorType;
-  shipment: {
+  // Single-shipment sessions
+  shipment?: {
     goodsDescription: string;
     pickupLocation: string;
     deliveryLocation: string;
     status: string;
   };
-  waybillId: string | null;
-  waybillNumber: string | null;
+  waybillId?: string | null;
+  waybillNumber?: string | null;
+  // Run sessions
+  mode?: "run";
+  runId?: string;
+  shipments?: RunShipmentItem[];
+}
+
+export interface BatchTokenInfo {
+  batchId: string;
+  receiverActorType: ActorType;
+  runId: string | null;
+  internal: boolean;
+  expiresAt: string;
+  shipments: Array<{
+    shipmentId: string;
+    waybillNumber: string | null;
+    goodsDescription: string | null;
+    pickupLocation: string | null;
+    deliveryLocation: string | null;
+    shipmentValue: number;
+  }>;
+}
+
+export interface BulkHandoverInitiated {
+  token: string;
+  expiresAt: string;
+  shipmentCount: number;
+}
+
+export interface BulkHandoverConfirmed {
+  confirmedCount: number;
+  totalFee: number;
+  custodianToken: string | null;
+  proofHashes: Array<{ shipmentId: string; proofHash: string }>;
 }
 
 // Public custodian API — no operator auth, uses per-request custodian JWT
@@ -189,13 +244,43 @@ export const custodianApi = {
       headers: { Authorization: `Bearer ${custodianToken}` },
     }).then((r) => r.data),
 
-  initiateHandover: (custodianToken: string, actorType: ActorType) =>
+  initiateHandover: (custodianToken: string, actorType: ActorType, shipmentId?: string) =>
     axios.post<HandoverToken>(
       `${publicBase()}/api/custodian/initiate-handover`,
-      { actorType },
+      { actorType, ...(shipmentId ? { shipmentId } : {}) },
       { headers: { Authorization: `Bearer ${custodianToken}` } }
     ).then((r) => r.data),
 
   resendLink: (phone: string) =>
     axios.post<{ sent: boolean; sessionId: string }>(`${publicBase()}/api/custodian/resend-link`, { phone }).then((r) => r.data),
+};
+
+export const publicBatchApi = {
+  getInfo: (token: string) =>
+    axios.get<BatchTokenInfo>(`${publicBase()}/api/handover/batch/${token}`).then((r) => r.data),
+
+  confirm: (body: {
+    token: string;
+    receiverName: string;
+    receiverGovtId: string;
+    receiverPhone?: string;
+    receiverActorType: ActorType;
+    latitude?: number;
+    longitude?: number;
+  }) =>
+    axios.post<BulkHandoverConfirmed>(`${publicBase()}/api/handover/confirm-bulk`, body).then((r) => r.data),
+};
+
+// ── Wallet ────────────────────────────────────────────────────────────────────
+
+export interface WalletData {
+  id: string;
+  operator_id: string;
+  balance: number;
+  currency: string;
+  updated_at: string;
+}
+
+export const walletApi = {
+  get: () => apiClient.get<{ wallet: WalletData }>("/api/wallet").then((r) => r.data.wallet),
 };

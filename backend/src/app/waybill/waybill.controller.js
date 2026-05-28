@@ -299,4 +299,17 @@ router.post("/recover/:shipmentId", localAuthOptional, asyncHandler(async (req, 
   }
 }));
 
+// ── GET /stream/notifications — SSE stream for incoming custody events ────────
+// NotificationBell subscribes here using ?token= query param.
+// localAuthOptional already extracts the token from the query string.
+
+const ssePool = require("../../core/sse");
+
+router.get("/stream/notifications", localAuthOptional, (req, res) => {
+  if (!req.user?.uid) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  ssePool.subscribe(req.user.uid, res);
+});
+
 module.exports = router;

@@ -20,6 +20,7 @@ import {
   Route,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import WalletWidget from "./WalletWidget";
 
 const NAV_ITEMS = [
   { to: "/dashboard",           label: "Overview",  icon: LayoutDashboard, end: true },
@@ -293,6 +294,7 @@ export default function DashboardLayout() {
             )}
           </div>
 
+          <WalletWidget />
           <NotificationBell />
         </header>
 

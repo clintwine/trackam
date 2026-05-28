@@ -124,6 +124,7 @@ app.use("/api/waybill",   rateLimiter, require("./app/waybill/waybill.controller
 app.use("/api/waybill",   rateLimiter, localAuthOptional, oliProxy);
 app.use("/api/handover",  rateLimiter, localAuthOptional, oliProxy);
 app.use("/api/custodian", rateLimiter, oliProxy);
+app.use("/api/wallet",   rateLimiter, localAuthOptional, oliProxy);
 // Dispatch runs — operator vehicle trip grouping
 app.use("/api/runs", rateLimiter, require("./app/runs/runs.controller"));
 

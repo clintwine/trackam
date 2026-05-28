@@ -1,6 +1,8 @@
-const express = require("express");
-const crypto  = require("crypto");
-const router  = express.Router();
+const express  = require("express");
+const crypto   = require("crypto");
+const router   = express.Router();
+const { query } = require("../../core/db/postgres");
+const ssePool  = require("../../core/sse");
 
 const OLI_API_KEY = process.env.OLI_API_KEY || "";
 
@@ -59,13 +61,36 @@ async function handleEvent(event, payload) {
 
 async function onHandoverConfirmed(payload) {
   const { shipmentId, waybillId, receiverName, receiverActorType, proofHash, occurredAt } = payload;
+  if (!shipmentId) return;
 
-  // Nothing to do locally for now — the switch is the source of truth.
-  // This is the extension point: trigger local notifications, update a
-  // local cache table, fire Slack alerts, etc.
-  //
-  // Example: push an in-app notification to the operator user
-  // await notificationsService.push({ ... });
+  try {
+    // Look up the operator user who owns this shipment locally so we can push
+    // a targeted SSE event to their active dashboard session.
+    const result = await query(
+      `SELECT s.user_id, s.waybill_id, lw.waybill_number
+       FROM shipments s
+       LEFT JOIN lite_waybills lw ON lw.id = s.waybill_id
+       WHERE s.id = $1
+       LIMIT 1`,
+      [shipmentId]
+    );
+    const row = result.rows[0];
+    if (!row?.user_id) return;
+
+    ssePool.publish(row.user_id, {
+      type:              "waybill_handover",
+      shipmentId,
+      waybillId:         row.waybill_id || waybillId || null,
+      waybillNumber:     row.waybill_number || null,
+      receiverName,
+      receiverActorType,
+      proofHash,
+      occurredAt,
+      joinLegUrl:        null,
+    });
+  } catch (err) {
+    console.error("[oli.webhook] onHandoverConfirmed SSE push failed:", err.message);
+  }
 }
 
 module.exports = router;

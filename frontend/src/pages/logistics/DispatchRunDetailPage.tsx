@@ -3,10 +3,12 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Truck, Package, Navigation, CheckCircle2, XCircle,
   Clock, Loader2, Trash2, Plus, ShieldCheck, ExternalLink, Edit2, X, Check,
+  QrCode, AlertCircle,
 } from "lucide-react";
 import { runsApi, type DispatchRunDetail, type RunStatus } from "@/services/runs";
-import { waybillApi, type OperatorWaybill } from "@/services/handover";
+import { waybillApi, handoverApi, type OperatorWaybill } from "@/services/handover";
 import { ridersApi, type Rider } from "@/services/logistics";
+import { QRCodeSVG } from "qrcode.react";
 import { formatNaira } from "@/lib/format";
 import { StatusBadge } from "@/components/logistics/StatusBadge";
 import type { ShipmentStatus } from "@/services/logistics";
@@ -38,6 +40,13 @@ export default function DispatchRunDetailPage() {
   const [editingRider, setEditingRider] = useState(false);
   const [riderIdInput, setRiderIdInput] = useState("");
   const [riders, setRiders] = useState<Rider[]>([]);
+
+  // Run-level bulk handover to driver
+  const [handoverQrOpen, setHandoverQrOpen] = useState(false);
+  const [handoverToken, setHandoverToken] = useState<string | null>(null);
+  const [handoverSecondsLeft, setHandoverSecondsLeft] = useState(0);
+  const [handoverWorking, setHandoverWorking] = useState(false);
+  const [handoverError, setHandoverError] = useState("");
 
   async function loadRun() {
     if (!id) return;
@@ -103,6 +112,39 @@ export default function DispatchRunDetailPage() {
     await runsApi.update(id, { name: nameInput || undefined });
     setRun((prev) => prev ? { ...prev, name: nameInput || null } : prev);
     setEditingName(false);
+  }
+
+  // Countdown for run handover QR
+  useEffect(() => {
+    if (handoverSecondsLeft <= 0) return;
+    const t = setInterval(() => setHandoverSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [handoverSecondsLeft]);
+
+  async function handleHandoverToDriver() {
+    if (!run?.legs.length) return;
+    setHandoverWorking(true);
+    setHandoverError("");
+    try {
+      const result = await handoverApi.initiateBulk({
+        shipmentIds: run.legs.map((l) => l.shipmentId),
+        receiverActorType: "ACTOR_COURIER",
+        giverActorType: "ACTOR_HUB",
+        runId: id,
+        internal: false,
+      });
+      setHandoverToken(result.token);
+      const secs = Math.floor((new Date(result.expiresAt).getTime() - Date.now()) / 1000);
+      setHandoverSecondsLeft(secs);
+      setHandoverQrOpen(true);
+    } catch (err: unknown) {
+      setHandoverError(
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to generate handover QR."
+      );
+    } finally {
+      setHandoverWorking(false);
+    }
   }
 
   async function openRiderEdit() {
@@ -223,6 +265,49 @@ export default function DispatchRunDetailPage() {
             {nextStatus === "in_transit" ? "Depart — mark as in transit" : "Mark as completed"}
           </button>
         )}
+
+        {/* Hand over all shipments to driver */}
+        {run.status === "in_transit" && run.legs.length > 0 && (
+          <div className="space-y-2">
+            <button
+              onClick={handleHandoverToDriver}
+              disabled={handoverWorking}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-purple-300 bg-purple-50 text-purple-800 h-10 text-sm font-medium hover:bg-purple-100 transition-colors disabled:opacity-60"
+            >
+              {handoverWorking
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <QrCode className="h-4 w-4" />}
+              Hand over {run.legs.length} shipment{run.legs.length !== 1 ? "s" : ""} to driver
+            </button>
+            {handoverError && (
+              <p className="flex items-center gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />{handoverError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Auto-complete prompt */}
+        {run.status === "in_transit" && run.legs.length > 0 &&
+          run.legs.every((l) => ["delivered", "failed", "ghosted"].includes(l.status)) && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-900">All shipments handed over</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                All {run.legs.length} shipments in this run have been delivered or closed.
+              </p>
+              <button
+                onClick={() => handleStatusChange("completed")}
+                disabled={updating}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-700 text-white px-3 h-7 text-xs font-semibold hover:bg-amber-800 disabled:opacity-60"
+              >
+                {updating ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                Mark run as completed
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Waybill legs */}
@@ -319,6 +404,62 @@ export default function DispatchRunDetailPage() {
           <p className="text-sm text-foreground">{run.notes}</p>
         </div>
       )}
+
+      {/* Run handover QR modal */}
+      {handoverQrOpen && handoverToken && (() => {
+        const scanUrl = `${window.location.origin}/scan?token=${handoverToken}`;
+        const mins = Math.floor(handoverSecondsLeft / 60);
+        const secs = handoverSecondsLeft % 60;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40">
+            <div className="relative w-full sm:max-w-sm rounded-t-xl sm:rounded-xl border border-border bg-white shadow-xl overflow-hidden">
+              <div className="flex items-start justify-between px-5 py-4 border-b border-border">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Driver handover QR</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {run.legs.length} shipment{run.legs.length !== 1 ? "s" : ""} · driver scans to confirm custody
+                  </p>
+                </div>
+                <button onClick={() => setHandoverQrOpen(false)} className="text-muted-foreground hover:text-foreground mt-0.5">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 flex flex-col items-center gap-4">
+                <div className="rounded-lg border border-border p-3 bg-white">
+                  <QRCodeSVG value={scanUrl} size={200} />
+                </div>
+                {handoverSecondsLeft > 0 ? (
+                  <p className="text-xs font-medium text-amber-700">
+                    Expires in {mins}:{String(secs).padStart(2, "0")}
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-red-600">Expired</p>
+                )}
+                <div className="w-full space-y-2">
+                  <button
+                    onClick={async () => { await navigator.clipboard.writeText(scanUrl); }}
+                    disabled={handoverSecondsLeft === 0}
+                    className="w-full inline-flex items-center justify-center rounded-md border border-border h-9 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+                  >
+                    Copy link to share
+                  </button>
+                  {handoverSecondsLeft === 0 && (
+                    <button
+                      onClick={() => { setHandoverQrOpen(false); setHandoverToken(null); }}
+                      className="w-full inline-flex items-center justify-center rounded-md bg-purple-700 text-white h-9 text-xs font-semibold hover:bg-purple-800"
+                    >
+                      Generate new code
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  The driver will receive a custody link via SMS after scanning.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
