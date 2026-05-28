@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Key } from "lucide-react";
 import { logisticsSettingsApi, type LogisticsSettings } from "@/services/logistics";
+import { oliAccountApi, type OliAccount } from "@/services/oliAccount";
 import { COUNTRY_OPTIONS } from "@/lib/idSchemes";
 
 const FIELDS: { key: keyof LogisticsSettings; label: string; description: string; suffix?: string; type?: string }[] = [
@@ -26,12 +27,38 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const [oliAccount, setOliAccount] = useState<OliAccount | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [savingKey, setSavingKey] = useState(false);
+  const [keySaved, setKeySaved] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
   useEffect(() => {
     logisticsSettingsApi.get().then((s) => {
       setSettings(s);
       setForm(s as unknown as Record<string, string>);
     });
+    oliAccountApi.get().then(setOliAccount).catch(() => {});
   }, []);
+
+  async function handleSaveApiKey(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingKey(true);
+    setKeyError(null);
+    setKeySaved(false);
+    try {
+      const updated = await oliAccountApi.saveApiKey(apiKeyInput.trim());
+      setOliAccount(updated);
+      setApiKeyInput("");
+      setKeySaved(true);
+      setTimeout(() => setKeySaved(false), 3000);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setKeyError(msg || "Failed to save API key. Check that the key is correct.");
+    } finally {
+      setSavingKey(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +137,69 @@ export default function SettingsPage() {
           At ₦{form.fuel_price_per_litre}/L × {form.fuel_efficiency_multiplier} L/km: a 100km trip costs ₦{(parseFloat(form.fuel_price_per_litre || "0") * parseFloat(form.fuel_efficiency_multiplier || "0") * 100).toLocaleString("en-NG")} in fuel.
         </p>
       </div>
+
+      {/* OLI Switch API key */}
+      {oliAccount && (
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Key className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">OLI Switch</h2>
+            {oliAccount.status === "active" && oliAccount.hasApiKey && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                <CheckCircle2 className="h-3 w-3" /> Connected
+              </span>
+            )}
+            {(oliAccount.status === "pending" || oliAccount.status === "not_provisioned") && (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                Pending approval
+              </span>
+            )}
+          </div>
+
+          {oliAccount.status === "active" && oliAccount.hasApiKey ? (
+            <p className="text-xs text-muted-foreground">
+              Your OLI Switch account is connected. Waybill signing, handovers, and custodian transfers are active.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">
+                {oliAccount.status === "pending" || oliAccount.status === "not_provisioned"
+                  ? "Your account is awaiting approval. Once activated, you'll receive an API key by email. Paste it below."
+                  : "Enter your OLI Switch API key to enable waybill signing and handover dispatch."}
+              </p>
+              <form onSubmit={handleSaveApiKey} className="rounded-lg border border-border bg-white p-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">API key</label>
+                  <input
+                    type="text"
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    placeholder="Paste your OLI Switch API key here"
+                    className="w-full rounded-md border border-input bg-white px-3 h-9 text-xs text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                {keyError && (
+                  <p className="text-xs text-red-600">{keyError}</p>
+                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={savingKey || apiKeyInput.trim().length < 10}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 h-9 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                  >
+                    {savingKey ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : "Save API key"}
+                  </button>
+                  {keySaved && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Saved
+                    </span>
+                  )}
+                </div>
+              </form>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

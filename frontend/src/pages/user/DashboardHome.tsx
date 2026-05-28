@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown, ShieldAlert, Skull } from "lucide-react";
+import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown, ShieldAlert, Skull, Clock } from "lucide-react";
 import { dashboardApi, type DashboardSummary, type Shipment } from "@/services/logistics";
+import { oliAccountApi, type OliAccountStatus } from "@/services/oliAccount";
 import { formatNaira } from "@/lib/format";
 import { RiskBadge } from "@/components/logistics/StatusBadge";
 
@@ -9,10 +10,11 @@ export default function DashboardHome() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [alerts, setAlerts] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [oliStatus, setOliStatus] = useState<OliAccountStatus | null>(null);
 
   useEffect(() => {
-    Promise.all([dashboardApi.summary(), dashboardApi.alerts()])
-      .then(([s, a]) => { setSummary(s); setAlerts(a); })
+    Promise.all([dashboardApi.summary(), dashboardApi.alerts(), oliAccountApi.get()])
+      .then(([s, a, oli]) => { setSummary(s); setAlerts(a); setOliStatus(oli.status); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -22,6 +24,22 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6 max-w-5xl">
+      {/* OLI Switch provisioning banner */}
+      {(oliStatus === "pending" || oliStatus === "not_provisioned") && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <Clock className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-blue-800">Your OLI Switch account is pending approval</p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                You'll receive an API key by email once your account is activated. Paste it in{" "}
+                <Link to="/dashboard/settings" className="underline hover:text-blue-900">Settings</Link> to start dispatching.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Alerts banner */}
       {alerts.length > 0 && (
         <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
