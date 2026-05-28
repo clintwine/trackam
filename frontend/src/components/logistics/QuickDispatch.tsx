@@ -68,12 +68,16 @@ export function QuickDispatch({ onCreated }: Props) {
   }
 
   async function handleCreate() {
+    if (!riderId) {
+      setError("Please select a rider before creating the run.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
       const run = await runsApi.create({
         name: runName.trim() || undefined,
-        riderId: riderId || undefined,
+        riderId,
         notes: notes.trim() || undefined,
       });
       setOpen(false);
@@ -182,15 +186,18 @@ export function QuickDispatch({ onCreated }: Props) {
                     <p className="text-[10px] text-muted-foreground mt-1">Helps you identify this run on the manifest.</p>
                   </div>
 
-                  {/* Rider */}
+                  {/* Rider — required */}
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1.5">Rider</label>
+                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                      Rider <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={riderId}
                       onChange={(e) => setRiderId(e.target.value)}
+                      required
                       className="w-full rounded-md border border-input bg-white px-3 h-9 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     >
-                      <option value="">No rider assigned yet</option>
+                      <option value="">Select a rider…</option>
                       {riders.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name} · {r.vehicleType}

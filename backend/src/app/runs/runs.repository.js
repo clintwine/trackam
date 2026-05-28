@@ -150,28 +150,57 @@ async function removeLeg(runId, shipmentId, userId) {
 }
 
 async function updateStatus(runId, userId, status) {
+  let run;
+
   if (status === "in_transit") {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, departed_at=NOW(), updated_at=NOW()
        WHERE id=$2 AND user_id=$3 RETURNING *`,
       [status, runId, userId]
     );
-    return mapRun(r.rows[0]);
+    run = mapRun(r.rows[0]);
+    // Sync all shipments in this run to in_transit
+    await query(
+      `UPDATE shipments SET status = 'in_transit', updated_at = NOW()
+       WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted')`,
+      [runId]
+    );
   } else if (status === "completed") {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, completed_at=NOW(), updated_at=NOW()
        WHERE id=$2 AND user_id=$3 RETURNING *`,
       [status, runId, userId]
     );
-    return mapRun(r.rows[0]);
+    run = mapRun(r.rows[0]);
+    // Sync all shipments to delivered
+    await query(
+      `UPDATE shipments SET status = 'delivered', updated_at = NOW()
+       WHERE run_id = $1 AND status NOT IN ('failed','ghosted')`,
+      [runId]
+    );
+  } else if (status === "cancelled") {
+    const r = await query(
+      `UPDATE dispatch_runs SET status=$1, updated_at=NOW()
+       WHERE id=$2 AND user_id=$3 RETURNING *`,
+      [status, runId, userId]
+    );
+    run = mapRun(r.rows[0]);
+    // Release shipments back to unassigned + pending so they can be re-run
+    await query(
+      `UPDATE shipments SET status = 'pending', run_id = NULL, updated_at = NOW()
+       WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted')`,
+      [runId]
+    );
   } else {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, updated_at=NOW()
        WHERE id=$2 AND user_id=$3 RETURNING *`,
       [status, runId, userId]
     );
-    return mapRun(r.rows[0]);
+    run = mapRun(r.rows[0]);
   }
+
+  return run;
 }
 
 async function update(runId, userId, { name, riderId, notes }) {

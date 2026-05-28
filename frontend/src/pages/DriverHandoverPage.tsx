@@ -62,6 +62,7 @@ export default function DriverHandoverPage() {
 
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [qrError, setQrError] = useState("");
 
   const scanUrl = handoverToken ? `${window.location.origin}/scan?token=${handoverToken}` : null;
 
@@ -117,6 +118,7 @@ export default function DriverHandoverPage() {
   async function handleGenerateQr() {
     if (!custodianToken) return;
     setSubmitting(true);
+    setQrError("");
     try {
       const result = await custodianApi.initiateHandover(custodianToken, receiverActorType);
       setHandoverToken(result.token);
@@ -124,6 +126,11 @@ export default function DriverHandoverPage() {
       const secs = Math.floor((new Date(result.expiresAt).getTime() - Date.now()) / 1000);
       setSecondsLeft(secs);
       setPhase("qr");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Could not generate handover code. Check your connection and try again.";
+      setQrError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -381,6 +388,12 @@ export default function DriverHandoverPage() {
                 </button>
               ))}
             </div>
+            {qrError && (
+              <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                {qrError}
+              </p>
+            )}
+
             <button
               onClick={handleGenerateQr}
               disabled={submitting}

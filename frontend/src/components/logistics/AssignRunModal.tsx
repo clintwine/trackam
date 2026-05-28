@@ -51,12 +51,16 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
   }
 
   async function handleCreateRun() {
+    if (!newRiderId) {
+      setError("Please select a rider before creating the run.");
+      return;
+    }
     setWorking(true);
     setError("");
     try {
       const run = await runsApi.create({
         name: newName.trim() || undefined,
-        riderId: newRiderId || undefined,
+        riderId: newRiderId,
       });
       await runsApi.addLeg(run.id, shipmentId);
       navigate(`/dashboard/runs/${run.id}`);
@@ -70,8 +74,8 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="relative w-full max-w-sm rounded-xl border border-border bg-white shadow-xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40">
+      <div className="relative w-full sm:max-w-sm rounded-t-xl sm:rounded-xl border border-border bg-white shadow-xl overflow-hidden">
 
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-border">
@@ -166,13 +170,16 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1.5">Rider <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <label className="block text-[11px] font-medium text-foreground mb-1.5">
+                  Rider <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={newRiderId}
                   onChange={(e) => setNewRiderId(e.target.value)}
+                  required
                   className="w-full rounded-md border border-input bg-white px-3 h-9 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">No rider yet</option>
+                  <option value="">Select a rider…</option>
                   {riders.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name} · {r.vehicleType}

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { runsApi, type DispatchRunDetail, type RunStatus } from "@/services/runs";
 import { waybillApi, type OperatorWaybill } from "@/services/handover";
+import { ridersApi, type Rider } from "@/services/logistics";
 import { formatNaira } from "@/lib/format";
 import { StatusBadge } from "@/components/logistics/StatusBadge";
 import type { ShipmentStatus } from "@/services/logistics";
@@ -34,6 +35,9 @@ export default function DispatchRunDetailPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [editingRider, setEditingRider] = useState(false);
+  const [riderIdInput, setRiderIdInput] = useState("");
+  const [riders, setRiders] = useState<Rider[]>([]);
 
   async function loadRun() {
     if (!id) return;
@@ -101,6 +105,22 @@ export default function DispatchRunDetailPage() {
     setEditingName(false);
   }
 
+  async function openRiderEdit() {
+    if (!riders.length) {
+      const list = await ridersApi.list();
+      setRiders(Array.isArray(list) ? list : []);
+    }
+    setRiderIdInput(run?.riderId ?? "");
+    setEditingRider(true);
+  }
+
+  async function handleSaveRider() {
+    if (!id) return;
+    const updated = await runsApi.update(id, { riderId: riderIdInput || undefined });
+    setRun((prev) => prev ? { ...prev, riderId: updated.riderId, riderName: updated.riderName } : prev);
+    setEditingRider(false);
+  }
+
   if (loading) return <div className="animate-pulse h-64 rounded-lg bg-stone-100" />;
   if (!run) return <p className="text-sm text-muted-foreground">Run not found.</p>;
 
@@ -156,7 +176,32 @@ export default function DispatchRunDetailPage() {
         <div className="grid grid-cols-3 gap-3 border-t border-border pt-3 text-xs">
           <div>
             <p className="text-[11px] text-muted-foreground">Rider</p>
-            <p className="font-medium text-foreground">{run.riderName || "—"}</p>
+            {editingRider ? (
+              <div className="flex items-center gap-1 mt-0.5">
+                <select
+                  value={riderIdInput}
+                  onChange={(e) => setRiderIdInput(e.target.value)}
+                  autoFocus
+                  className="rounded border border-input px-1.5 h-7 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0"
+                >
+                  <option value="">No rider</option>
+                  {riders.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+                <button onClick={handleSaveRider} className="text-green-600 hover:text-green-700 shrink-0"><Check className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setEditingRider(false)} className="text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="font-medium text-foreground">{run.riderName || "—"}</p>
+                {!isLocked && (
+                  <button onClick={openRiderEdit} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <Edit2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <p className="text-[11px] text-muted-foreground">Waybills</p>
