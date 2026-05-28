@@ -105,9 +105,12 @@ export default function ShipmentsPage() {
       setSecondsLeft(secs);
       setBulkStep("qr");
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setBulkError(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Failed to initiate bulk handover."
+        status === 402
+          ? "Insufficient wallet balance. Please top up your OLI Switch wallet and try again."
+          : msg || "Failed to initiate bulk handover."
       );
     } finally {
       setBulkWorking(false);

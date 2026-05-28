@@ -19,6 +19,7 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose,
   const [, setExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [confirmedEvent, setConfirmedEvent] = useState<import("@/services/handover").HandoverEvent | null>(null);
   const initialEventCountRef = useRef<number>(-1);
@@ -29,6 +30,7 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose,
 
   async function generate() {
     setLoading(true);
+    setError(null);
     try {
       // Snapshot current event count before generating the token
       const existing = await handoverApi.getEvents(shipmentId).catch(() => []);
@@ -39,6 +41,14 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose,
       setExpiresAt(result.expiresAt);
       const secs = Math.floor((new Date(result.expiresAt).getTime() - Date.now()) / 1000);
       setSecondsLeft(secs);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: { message?: string } } })?.response?.status;
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      if (status === 402) {
+        setError("Insufficient wallet balance. Please top up your OLI Switch wallet and try again.");
+      } else {
+        setError(msg || "Failed to generate handover QR. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -152,6 +162,12 @@ export default function HandoverQRModal({ shipmentId, goodsDescription, onClose,
                   ))}
                 </div>
               </div>
+
+              {error && (
+                <p className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs text-destructive">
+                  {error}
+                </p>
+              )}
 
               <button
                 onClick={generate}

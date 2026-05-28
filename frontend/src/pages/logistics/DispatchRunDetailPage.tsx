@@ -138,9 +138,12 @@ export default function DispatchRunDetailPage() {
       setHandoverSecondsLeft(secs);
       setHandoverQrOpen(true);
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setHandoverError(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Failed to generate handover QR."
+        status === 402
+          ? "Insufficient wallet balance. Please top up your OLI Switch wallet and try again."
+          : msg || "Failed to generate handover QR."
       );
     } finally {
       setHandoverWorking(false);
