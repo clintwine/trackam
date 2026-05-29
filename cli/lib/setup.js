@@ -105,7 +105,6 @@ module.exports = async function setup() {
   step("Configuring environment");
 
   const jwtSecret = generateSecret(32);
-  const adminPassword = generateSecret(12).slice(0, 16);
 
   // Preserve existing .env values for OLI keys if upgrading
   let existingOliKey = "";
@@ -135,11 +134,6 @@ SESSION_COOKIE_MAX_AGE_DAYS=7
 SESSION_COOKIE_SECURE=false
 SESSION_COOKIE_DOMAIN=
 
-# Bootstrap admin
-BOOTSTRAP_ADMIN_EMAIL=admin@trackam.local
-BOOTSTRAP_ADMIN_PASSWORD=${adminPassword}
-BOOTSTRAP_ADMIN_DISPLAY_NAME=Admin
-
 # Storage
 STORAGE_DIRECTORY=storage
 STORAGE_URL_PREFIX=http://127.0.0.1:4429/storage
@@ -164,16 +158,6 @@ OLI_TRACKING_ENDPOINT=
     fail("Migration failed");
     dim(err.message);
     dim("You can retry later: trackam update");
-  }
-
-  // ── 7. Seed admin ────────────────────────────────────────────────────
-
-  step("Creating admin account");
-  try {
-    run("npm run db:seed:bootstrap-admin", { cwd: BACKEND_DIR });
-    ok("Admin ready");
-  } catch {
-    dim("Admin may already exist (skipping)");
   }
 
   // ── Done! ─────────────────────────────────────────────────────────────
