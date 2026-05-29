@@ -78,12 +78,14 @@ module.exports = async function setup() {
 
   step("Installing dependencies");
 
+  const npmFlags = "--fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 --maxsockets=5";
+
   dim("Backend...");
-  runWithRetry("npm install", { cwd: BACKEND_DIR });
+  runWithRetry(`npm install ${npmFlags}`, { cwd: BACKEND_DIR });
   ok("Backend");
 
   dim("Frontend...");
-  runWithRetry("npm install", { cwd: FRONTEND_DIR });
+  runWithRetry(`npm install ${npmFlags}`, { cwd: FRONTEND_DIR });
   ok("Frontend");
 
   // ── 4. Start PostgreSQL & create database ─────────────────────────────
