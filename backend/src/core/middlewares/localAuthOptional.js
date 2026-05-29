@@ -25,6 +25,12 @@ function extractToken(req) {
 
 function localAuthOptional(req, _res, next) {
   const token = extractToken(req);
+  if (!token) {
+    warn("local_auth_optional_no_token", { path: req.originalUrl, hasCookie: !!req.headers.cookie, hasAuth: !!req.headers.authorization });
+  }
+  if (!JWT_SECRET) {
+    warn("local_auth_optional_no_secret", { path: req.originalUrl });
+  }
   if (token && JWT_SECRET) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
@@ -35,7 +41,7 @@ function localAuthOptional(req, _res, next) {
         email_verified: Boolean(decoded.email_verified),
       };
     } catch (err) {
-      warn("local_auth_optional_ignored", { message: err.message });
+      warn("local_auth_optional_failed", { message: err.message, path: req.originalUrl });
     }
   }
   return next();

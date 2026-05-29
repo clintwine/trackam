@@ -51,7 +51,7 @@ function createOliProxy() {
     // Resolve API key then forward — async wrapper keeps the existing sync-style proxy logic
     _resolveApiKey(userId).then((apiKey) => {
       if (!apiKey) {
-        console.warn(`[oli-proxy] No API key resolved — userId=${userId}, env=${OLI_API_KEY_ENV ? "set" : "empty"}, path=${req.originalUrl}`);
+        console.warn(`[oli-proxy] No API key resolved — userId=${userId}, reqUser=${JSON.stringify(req.user || null)}, hasAuth=${!!req.headers.authorization}, path=${req.originalUrl}`);
         return res.status(403).json({
           message: "OLI API key not configured. Go to Settings and paste your API key to connect to the OLI network.",
         });
