@@ -51,10 +51,14 @@ Write-Host "  Installing trackam CLI..." -ForegroundColor Cyan
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "trackam-cli-install"
 if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
 
-& git clone --depth 1 https://github.com/Jeffreyon/trackam.git $tempDir 2>&1 | Out-Null
+try { & git clone --depth 1 https://github.com/Jeffreyon/trackam.git $tempDir 2>$null } catch {}
+if (-not (Test-Path (Join-Path $tempDir "cli"))) {
+    Write-Host "  Failed to clone the repository. Check your internet connection." -ForegroundColor Red
+    exit 1
+}
 
 $cliDir = Join-Path $tempDir "cli"
-& npm install -g $cliDir 2>&1 | Out-Null
+try { & npm install -g $cliDir 2>$null } catch {}
 
 # Clean up temp dir
 Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
