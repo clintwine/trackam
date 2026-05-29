@@ -16,6 +16,25 @@ const SESSION_COOKIE_SECURE =
   (process.env.SESSION_COOKIE_SECURE || "false").toLowerCase() === "true";
 const SESSION_COOKIE_DOMAIN = process.env.SESSION_COOKIE_DOMAIN || undefined;
 
+// Cross-domain deployments (frontend ≠ backend origin) require
+// sameSite: "none" + secure: true for cookies to be sent on AJAX requests.
+// Local dev (same host, different ports) works with "lax".
+const SESSION_COOKIE_SAMESITE = SESSION_COOKIE_SECURE ? "none" : "lax";
+
+function buildCookieOptions(expiresIn) {
+  const opts = {
+    httpOnly: true,
+    secure: SESSION_COOKIE_SECURE,
+    sameSite: SESSION_COOKIE_SAMESITE,
+    maxAge: expiresIn,
+    path: "/",
+  };
+  if (SESSION_COOKIE_DOMAIN) {
+    opts.domain = SESSION_COOKIE_DOMAIN;
+  }
+  return opts;
+}
+
 // POST /api/auth/signup
 router.post(
   "/signup",
@@ -41,19 +60,7 @@ router.post(
         SESSION_COOKIE_MAX_AGE_MS
       );
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: SESSION_COOKIE_SECURE,
-      sameSite: "lax",
-      maxAge: expiresIn,
-      path: "/",
-    };
-
-    if (SESSION_COOKIE_DOMAIN) {
-      cookieOptions.domain = SESSION_COOKIE_DOMAIN;
-    }
-
-    res.cookie(SESSION_COOKIE_NAME, sessionCookie, cookieOptions);
+    res.cookie(SESSION_COOKIE_NAME, sessionCookie, buildCookieOptions(expiresIn));
 
     res.status(201).json(result);
   })
@@ -86,19 +93,7 @@ router.post(
         SESSION_COOKIE_MAX_AGE_MS
       );
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: SESSION_COOKIE_SECURE,
-      sameSite: "lax",
-      maxAge: expiresIn,
-      path: "/",
-    };
-
-    if (SESSION_COOKIE_DOMAIN) {
-      cookieOptions.domain = SESSION_COOKIE_DOMAIN;
-    }
-
-    res.cookie(SESSION_COOKIE_NAME, sessionCookie, cookieOptions);
+    res.cookie(SESSION_COOKIE_NAME, sessionCookie, buildCookieOptions(expiresIn));
 
     res.json(result);
   })
@@ -164,17 +159,7 @@ router.post(
 
     await AuthService.logout(uid);
 
-    const clearOptions = {
-      httpOnly: true,
-      secure: SESSION_COOKIE_SECURE,
-      sameSite: "lax",
-      path: "/",
-    };
-    if (SESSION_COOKIE_DOMAIN) {
-      clearOptions.domain = SESSION_COOKIE_DOMAIN;
-    }
-
-    res.clearCookie(SESSION_COOKIE_NAME, clearOptions);
+    res.clearCookie(SESSION_COOKIE_NAME, buildCookieOptions(0));
 
     res.json({ success: true });
   })
