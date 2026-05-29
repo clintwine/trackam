@@ -1,6 +1,7 @@
 const path = require("path");
 const { TRACKAM_DIR, BACKEND_DIR, FRONTEND_DIR, isInstalled } = require("./paths");
 const { step, ok, fail, warn, dim, run, runWithRetry } = require("./helpers");
+const pg = require("./postgres");
 
 module.exports = function update() {
   if (!isInstalled()) {
@@ -46,12 +47,17 @@ module.exports = function update() {
 
   // ── 4. Run migrations ────────────────────────────────────────────────
   step("Running migrations");
-  try {
-    run("npm run db:migrate", { cwd: BACKEND_DIR });
-    ok("Migrations applied");
-  } catch (err) {
-    fail("Migration failed");
-    dim(err.message);
+  if (!pg.ensurePostgresRunning()) {
+    fail("Cannot run migrations without PostgreSQL.");
+    dim("Start Postgres manually or run: trackam start");
+  } else {
+    try {
+      run("npm run db:migrate", { cwd: BACKEND_DIR });
+      ok("Migrations applied");
+    } catch (err) {
+      fail("Migration failed");
+      dim(err.message);
+    }
   }
 
   console.log(`
