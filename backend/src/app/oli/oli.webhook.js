@@ -3,17 +3,32 @@ const crypto   = require("crypto");
 const router   = express.Router();
 const { query } = require("../../core/db/postgres");
 const ssePool  = require("../../core/sse");
+const oliAccountRepo = require("./oli.account.repository");
 
-const OLI_API_KEY = process.env.OLI_API_KEY || "";
+const OLI_API_KEY_ENV = process.env.OLI_API_KEY || "";
 
-function verifySignature(rawBody, header) {
-  if (!header || !header.startsWith("sha256=")) return false;
+// Cache the verification key (single-tenant — one operator)
+let _cachedKey = null;
+let _cachedKeyExpiresAt = 0;
+
+async function getVerificationKey() {
+  if (OLI_API_KEY_ENV) return OLI_API_KEY_ENV;
+  if (_cachedKey && _cachedKeyExpiresAt > Date.now()) return _cachedKey;
+  const key = await oliAccountRepo.findDefaultApiKey();
+  if (key) {
+    _cachedKey = key;
+    _cachedKeyExpiresAt = Date.now() + 60_000;
+  }
+  return key || "";
+}
+
+function verifySignature(rawBody, header, secret) {
+  if (!header || !header.startsWith("sha256=") || !secret) return false;
   const expected = crypto
-    .createHmac("sha256", OLI_API_KEY)
+    .createHmac("sha256", secret)
     .update(rawBody)
     .digest("hex");
   const received = header.slice("sha256=".length);
-  // Constant-time comparison to prevent timing attacks
   try {
     return crypto.timingSafeEqual(
       Buffer.from(expected, "hex"),
@@ -28,11 +43,12 @@ function verifySignature(rawBody, header) {
 router.post(
   "/",
   express.raw({ type: "application/json" }),
-  (req, res) => {
+  async (req, res) => {
     const sig  = req.headers["x-oli-signature"];
     const event = req.headers["x-oli-event"];
 
-    if (!verifySignature(req.body, sig)) {
+    const secret = await getVerificationKey();
+    if (!verifySignature(req.body, sig, secret)) {
       return res.status(401).json({ message: "Invalid signature" });
     }
 
@@ -46,7 +62,9 @@ router.post(
     // Acknowledge immediately — do async work after
     res.status(200).json({ received: true });
 
-    handleEvent(event, payload).catch(() => {});
+    handleEvent(event, payload).catch((err) => {
+      console.error(`[oli.webhook] ${event} handler error:`, err.message);
+    });
   }
 );
 
@@ -64,10 +82,9 @@ async function onHandoverConfirmed(payload) {
   if (!shipmentId) return;
 
   try {
-    // Look up the operator user who owns this shipment locally so we can push
-    // a targeted SSE event to their active dashboard session.
+    // Look up the operator user who owns this shipment locally
     const result = await query(
-      `SELECT s.user_id, s.waybill_id, lw.waybill_number
+      `SELECT s.user_id, s.waybill_id, s.status, lw.waybill_number
        FROM shipments s
        LEFT JOIN lite_waybills lw ON lw.id = s.waybill_id
        WHERE s.id = $1
@@ -77,6 +94,27 @@ async function onHandoverConfirmed(payload) {
     const row = result.rows[0];
     if (!row?.user_id) return;
 
+    // Update local shipment status to "handed_over" if still pending/in_transit
+    if (["pending", "in_transit"].includes(row.status)) {
+      await query(
+        `UPDATE shipments SET status = 'handed_over', updated_at = NOW() WHERE id = $1`,
+        [shipmentId]
+      );
+
+      // Add status log entry
+      await query(
+        `INSERT INTO status_log (shipment_id, new_status, note, changed_at)
+         VALUES ($1, 'handed_over', $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [
+          shipmentId,
+          `Custody transferred to ${receiverName} (${receiverActorType})`,
+          occurredAt || new Date().toISOString(),
+        ]
+      ).catch(() => {}); // non-fatal
+    }
+
+    // Push SSE event to operator's dashboard
     ssePool.publish(row.user_id, {
       type:              "waybill_handover",
       shipmentId,
@@ -89,7 +127,7 @@ async function onHandoverConfirmed(payload) {
       joinLegUrl:        null,
     });
   } catch (err) {
-    console.error("[oli.webhook] onHandoverConfirmed SSE push failed:", err.message);
+    console.error("[oli.webhook] onHandoverConfirmed error:", err.message);
   }
 }
 

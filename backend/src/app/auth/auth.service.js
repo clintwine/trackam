@@ -12,15 +12,20 @@ const oliAccountRepo = require("../oli/oli.account.repository");
 
 const OLI_SWITCH_URL = process.env.OLI_SWITCH_URL || "";
 const TRACKAM_FRONTEND_URL = process.env.FRONTEND_URL || "";
+const TRACKAM_BACKEND_URL  = process.env.BACKEND_URL  || "";
 
 // Fire-and-forget — never blocks or fails the Trackam signup
 async function _provisionOliAccount(userId, { email, displayName }) {
   if (!OLI_SWITCH_URL) return;
   try {
+    const webhookUrl = TRACKAM_BACKEND_URL
+      ? `${TRACKAM_BACKEND_URL.replace(/\/$/, "")}/api/oli/webhook`
+      : "";
     const body = JSON.stringify({
       name: displayName || email,
       email,
       frontendUrl: TRACKAM_FRONTEND_URL,
+      ...(webhookUrl ? { webhookUrl } : {}),
     });
     const url = new URL("/api/operators/signup", OLI_SWITCH_URL);
     const mod = url.protocol === "https:" ? https : http;
