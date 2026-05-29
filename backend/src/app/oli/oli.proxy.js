@@ -49,7 +49,14 @@ function createOliProxy() {
     const userId = req.user?.uid || null;
 
     // Resolve API key then forward — async wrapper keeps the existing sync-style proxy logic
-    _resolveApiKey(userId).then((apiKey) => _forward(req, res, targetUrl, apiKey, userId, httpModule, agent, switchBase)).catch(() => {
+    _resolveApiKey(userId).then((apiKey) => {
+      if (!apiKey) {
+        return res.status(403).json({
+          message: "OLI API key not configured. Go to Settings and paste your API key to connect to the OLI network.",
+        });
+      }
+      _forward(req, res, targetUrl, apiKey, userId, httpModule, agent, switchBase);
+    }).catch(() => {
       if (!res.headersSent) res.status(502).json({ error: "OLI switch unavailable" });
     });
   };
