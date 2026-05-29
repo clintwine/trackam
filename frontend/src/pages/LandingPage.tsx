@@ -123,7 +123,7 @@ export default function LandingPage() {
         <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] bg-amber-500/[0.05] rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-10%] left-[40%] w-[500px] h-[500px] bg-orange-600/[0.04] rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="relative max-w-4xl mx-auto px-5 pt-32 sm:pt-40 pb-28 sm:pb-36">
+        <div className="relative max-w-6xl mx-auto px-6 sm:px-10 pt-32 sm:pt-40 pb-28 sm:pb-36">
           {/* Badge */}
           <FadeIn className="flex justify-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-1.5 text-[12px] font-medium text-stone-300 backdrop-blur-sm">
@@ -184,7 +184,7 @@ export default function LandingPage() {
 
       {/* ── Problem ───────────────────────────────────────────────────── */}
       <section className="py-24 px-5 relative">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <FadeIn>
             <div className="text-center max-w-2xl mx-auto mb-16">
               <p className="text-xs font-semibold text-orange-500 uppercase tracking-[0.2em] mb-4">The problem</p>
@@ -255,35 +255,37 @@ export default function LandingPage() {
       </section>
 
       {/* ── How it works ──────────────────────────────────────────────── */}
-      <section className="py-24 px-5 relative">
+      <section className="py-28 px-6 sm:px-10 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
-        <div className="max-w-4xl mx-auto relative">
+        <div className="max-w-6xl mx-auto relative">
           <FadeIn>
-            <p className="text-xs font-semibold text-orange-500 uppercase tracking-[0.2em] mb-4">How it works</p>
-            <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
-              Running in 10 minutes.{" "}
-              <span className="text-stone-500">Dispatching in 15.</span>
-            </h2>
+            <div className="text-center max-w-2xl mx-auto mb-20">
+              <p className="text-xs font-semibold text-orange-500 uppercase tracking-[0.2em] mb-4">How it works</p>
+              <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
+                Running in 10 minutes.{" "}
+                <span className="text-stone-500">Dispatching in 15.</span>
+              </h2>
+            </div>
           </FadeIn>
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {[
-              { n: 1, title: "Install", desc: "Paste one command. Database, backend, frontend — everything is automatic.", icon: Terminal },
-              { n: 2, title: "Sign up", desc: "Create your account. OLI Switch operator registration happens behind the scenes.", icon: Users },
-              { n: 3, title: "Activate", desc: "Receive your API key by email after approval. Paste it in Settings.", icon: Zap },
-              { n: 4, title: "Dispatch", desc: "Claim waybills, build runs, hand over with cryptographic proof at every step.", icon: Truck },
+              { n: 1, title: "Install", desc: "Paste one command. Database, backend, frontend — everything is automatic. Zero config.", icon: Terminal },
+              { n: 2, title: "Sign up", desc: "Create your account in the browser. OLI Switch operator registration happens behind the scenes.", icon: Users },
+              { n: 3, title: "Activate", desc: "Once approved, you receive an API key by email. Paste it in Settings — one field, done.", icon: Zap },
+              { n: 4, title: "Dispatch", desc: "Claim waybills, assign riders, build runs, hand over with cryptographic proof at every step.", icon: Truck },
             ].map((step, i) => (
-              <FadeIn key={step.n} delay={i * 0.1}>
-                <div className="group relative">
+              <FadeIn key={step.n} delay={i * 0.12}>
+                <div className="group relative text-center lg:text-left">
                   {/* Connection line */}
                   {step.n < 4 && (
-                    <div className="hidden lg:block absolute top-6 left-[calc(100%+4px)] w-[calc(100%-8px)] h-px bg-gradient-to-r from-white/10 to-transparent" />
+                    <div className="hidden lg:block absolute top-7 left-[calc(100%+8px)] w-[calc(100%-16px)] h-px bg-gradient-to-r from-white/[0.08] to-transparent" />
                   )}
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/10 flex items-center justify-center mb-4 group-hover:border-orange-500/30 transition-colors">
-                    <step.icon className="h-5 w-5 text-orange-400" />
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-500/15 to-orange-500/5 border border-orange-500/10 flex items-center justify-center mb-5 group-hover:border-orange-500/30 group-hover:from-orange-500/25 transition-all mx-auto lg:mx-0">
+                    <step.icon className="h-6 w-6 text-orange-400" />
                   </div>
-                  <div className="text-[11px] font-bold text-orange-500/60 uppercase tracking-widest mb-1.5">Step {step.n}</div>
-                  <p className="text-sm font-semibold text-white mb-1">{step.title}</p>
-                  <p className="text-[13px] text-stone-400 leading-relaxed">{step.desc}</p>
+                  <div className="text-[10px] font-bold text-orange-500/50 uppercase tracking-[0.2em] mb-2">Step {step.n}</div>
+                  <p className="text-base font-semibold text-white mb-2">{step.title}</p>
+                  <p className="text-sm text-stone-400 leading-relaxed">{step.desc}</p>
                 </div>
               </FadeIn>
             ))}
@@ -293,7 +295,7 @@ export default function LandingPage() {
 
       {/* ── Features (bento grid) ─────────────────────────────────────── */}
       <section className="py-24 px-5 relative">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <FadeIn>
             <p className="text-xs font-semibold text-orange-500 uppercase tracking-[0.2em] mb-4">Features</p>
             <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
@@ -328,7 +330,7 @@ export default function LandingPage() {
       <section className="py-24 px-5 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-orange-500/[0.03] via-transparent to-transparent pointer-events-none" />
         <DotGrid />
-        <div className="max-w-3xl mx-auto text-center relative">
+        <div className="max-w-6xl mx-auto text-center relative">
           <FadeIn>
             <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
               Open source. Self-hosted.{" "}
@@ -356,7 +358,7 @@ export default function LandingPage() {
       {/* ── Final CTA ─────────────────────────────────────────────────── */}
       <section className="py-28 px-5 relative overflow-hidden">
         <div className="absolute top-[20%] left-[30%] w-[500px] h-[500px] bg-orange-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
-        <div className="max-w-3xl mx-auto text-center relative">
+        <div className="max-w-6xl mx-auto text-center relative">
           <FadeIn>
             <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
               Ready to stop guessing<br />where your goods are?
@@ -380,7 +382,7 @@ export default function LandingPage() {
 
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.06] px-5 py-8">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
               <Package className="h-4 w-4 text-white" />

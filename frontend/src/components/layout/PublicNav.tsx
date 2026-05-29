@@ -60,7 +60,7 @@ export function PublicNav() {
     <header className="fixed top-0 inset-x-0 z-50 px-4 pt-3">
       <nav
         className={[
-          "max-w-5xl mx-auto rounded-2xl px-4 transition-all duration-300",
+          "max-w-6xl mx-auto rounded-2xl px-4 transition-all duration-300",
           scrolled
             ? "bg-[#0a1628]/80 border border-white/[0.08] shadow-lg shadow-black/20 backdrop-blur-xl"
             : "bg-transparent border border-transparent",
@@ -155,7 +155,7 @@ export function PublicNav() {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden max-w-5xl mx-auto mt-2 rounded-2xl border border-white/[0.08] bg-[#0a1628]/95 backdrop-blur-xl px-4 py-4 space-y-1 shadow-2xl shadow-black/40">
+        <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-2xl border border-white/[0.08] bg-[#0a1628]/95 backdrop-blur-xl px-4 py-4 space-y-1 shadow-2xl shadow-black/40">
           {NAV_LINKS.map(({ href, label, icon: Icon }) => (
             <a
               key={href}
