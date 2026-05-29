@@ -159,7 +159,7 @@ export default function LandingPage() {
           <FadeIn delay={0.4}>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
               <a href="/auth/signup" className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white px-6 h-12 text-sm font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all hover:scale-[1.02]">
-                Sign up on this instance <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                Sign up <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
               <a href="https://github.com/Jeffreyon/trackam" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.06] text-stone-300 hover:text-white px-6 h-12 text-sm font-medium transition-all backdrop-blur-sm">
                 <Github className="h-4 w-4" /> View on GitHub

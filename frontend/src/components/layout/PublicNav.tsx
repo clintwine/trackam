@@ -137,9 +137,15 @@ export function PublicNav() {
             </a>
             <a
               href="/auth/login"
-              className="flex items-center gap-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.06] text-white px-3.5 h-8 text-[12px] font-medium transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-stone-400 hover:text-white rounded-lg transition-colors"
             >
-              Dashboard
+              Log in
+            </a>
+            <a
+              href="/auth/signup"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white px-3.5 h-8 text-[12px] font-semibold shadow-sm shadow-orange-500/20 transition-all"
+            >
+              Sign up
             </a>
           </div>
 
@@ -202,7 +208,13 @@ export function PublicNav() {
               href="/auth/login"
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.06] text-white h-9 text-sm font-medium transition-all"
             >
-              Dashboard
+              Log in
+            </a>
+            <a
+              href="/auth/signup"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white h-9 text-sm font-semibold shadow-sm shadow-orange-500/20 transition-all"
+            >
+              Sign up
             </a>
           </div>
         </div>
