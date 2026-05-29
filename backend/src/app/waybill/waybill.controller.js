@@ -20,15 +20,39 @@ const { URL }           = require("url");
 const { query }         = require("../../core/db/postgres");
 const localAuthOptional = require("../../core/middlewares/localAuthOptional");
 const asyncHandler      = require("../../core/middlewares/asyncHandler");
+const oliAccountRepo    = require("../oli/oli.account.repository");
 
 const router = express.Router();
 
-const OLI_SWITCH_URL = process.env.OLI_SWITCH_URL || "http://localhost:5000";
-const OLI_API_KEY    = process.env.OLI_API_KEY    || "";
+const OLI_SWITCH_URL  = process.env.OLI_SWITCH_URL || "http://localhost:5000";
+const OLI_API_KEY_ENV = process.env.OLI_API_KEY    || "";
+
+// Per-user key cache — mirrors the proxy's cache to avoid DB hits
+const _keyCache = new Map(); // userId → { key, expiresAt }
+const KEY_CACHE_TTL_MS = 60_000;
+
+async function _resolveApiKey(userId) {
+  if (!userId) return OLI_API_KEY_ENV;
+  const cached = _keyCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.key;
+  try {
+    const account = await oliAccountRepo.findByUserId(userId);
+    const key = account?.oli_api_key || OLI_API_KEY_ENV;
+    _keyCache.set(userId, { key, expiresAt: Date.now() + KEY_CACHE_TTL_MS });
+    return key;
+  } catch {
+    return OLI_API_KEY_ENV;
+  }
+}
 
 // ── Internal OLI switch helpers ──────────────────────────────────────────────
 
-function oliRequest(method, path, userId, body) {
+async function oliRequest(method, path, userId, body) {
+  const apiKey = await _resolveApiKey(userId);
+  if (!apiKey) {
+    return { status: 403, data: { message: "OLI API key not configured. Go to Settings and paste your API key." } };
+  }
+
   const base       = new URL(OLI_SWITCH_URL);
   const httpModule = base.protocol === "https:" ? https : http;
 
@@ -43,7 +67,7 @@ function oliRequest(method, path, userId, body) {
       headers: {
         "accept":          "application/json",
         "content-type":    "application/json",
-        "x-oli-api-key":   OLI_API_KEY,
+        "x-oli-api-key":   apiKey,
         "x-oli-user-id":   userId || "",
         ...(bodyStr ? { "content-length": Buffer.byteLength(bodyStr) } : {}),
       },
