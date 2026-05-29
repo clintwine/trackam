@@ -16,10 +16,10 @@ export function AuthLayout({
   footer,
 }: AuthLayoutProps) {
   return (
-    <main className="min-h-screen bg-[#0a1228] text-white flex items-center justify-center px-4 relative overflow-hidden">
+    <main className="min-h-screen bg-[#060d18] text-white flex items-center justify-center px-4 relative overflow-hidden">
       {/* Background gradient orbs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-orange-500/[0.07] rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-orange-500/[0.06] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-blue-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
@@ -38,7 +38,7 @@ export function AuthLayout({
         </header>
 
         {/* Card */}
-        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm px-6 py-6 shadow-2xl shadow-black/20">
+        <section className="rounded-2xl border border-white/[0.08] bg-[#0c1522] px-6 py-6 shadow-2xl shadow-black/30">
           <div className="mb-6 text-center space-y-1.5">
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             {description && (
