@@ -184,28 +184,72 @@ export default function LandingPage() {
 
       {/* ── Problem ───────────────────────────────────────────────────── */}
       <section className="py-24 px-5 relative">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <FadeIn>
-            <p className="text-xs font-semibold text-orange-500 uppercase tracking-[0.2em] mb-4">The problem</p>
-            <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
-              Your riders pick up goods.{" "}
-              <span className="text-stone-500">Then silence.</span>
-            </h2>
-            <p className="text-stone-400 mt-4 text-base max-w-xl leading-relaxed">
-              No proof of pickup. No proof of delivery. When goods go missing, it's your word against theirs.
-              You eat the loss, or spend days chasing riders who've gone dark.
-            </p>
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <p className="text-xs font-semibold text-orange-500 uppercase tracking-[0.2em] mb-4">The problem</p>
+              <h2 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
+                Your riders pick up goods.{" "}
+                <span className="text-stone-500">Then silence.</span>
+              </h2>
+              <p className="text-stone-400 mt-4 text-base leading-relaxed">
+                No proof of pickup. No proof of delivery. When goods go missing, it's your word against theirs.
+              </p>
+            </div>
           </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
-            <FadeIn delay={0}>
-              <ProblemCard icon={<Ghost className="h-5 w-5" />} stat="1 in 8" label="shipments ghosted" description="Riders go silent after pickup. No update for hours. You don't know if goods are delivered or stolen." />
+
+          {/* Bento grid — 1 large card left, 2 stacked right */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Hero stat — spans 3 cols */}
+            <FadeIn className="lg:col-span-3">
+              <div className="relative h-full rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 overflow-hidden group hover:border-orange-500/20 transition-colors">
+                {/* Accent glow */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/40 to-transparent" />
+                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-orange-500/[0.06] rounded-full blur-[80px] pointer-events-none group-hover:bg-orange-500/[0.1] transition-colors" />
+
+                <Ghost className="h-6 w-6 text-orange-500/60 mb-6 relative" />
+                <div className="relative">
+                  <p className="text-6xl sm:text-7xl font-extrabold tracking-tight bg-gradient-to-b from-white to-stone-400 bg-clip-text text-transparent">
+                    1 in 8
+                  </p>
+                  <p className="text-sm font-medium text-stone-300 mt-2">shipments are ghosted</p>
+                  <p className="text-[13px] text-stone-500 mt-3 leading-relaxed max-w-md">
+                    Riders go silent after pickup. No status update for hours. You're left guessing whether your goods were delivered, sitting in a warehouse, or gone.
+                  </p>
+                </div>
+              </div>
             </FadeIn>
-            <FadeIn delay={0.1}>
-              <ProblemCard icon={<Wallet className="h-5 w-5" />} stat="Millions" label="lost per year" description="Lost goods, unrecovered logistics costs, disputed deliveries. It compounds every month." />
-            </FadeIn>
-            <FadeIn delay={0.2}>
-              <ProblemCard icon={<Clock className="h-5 w-5" />} stat="Hours" label="chasing updates" description="Calling riders, checking WhatsApp. Manual tracking that doesn't scale past 10 shipments a day." />
-            </FadeIn>
+
+            {/* Right column — 2 stacked cards */}
+            <div className="lg:col-span-2 grid grid-cols-1 gap-4">
+              <FadeIn delay={0.1}>
+                <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 overflow-hidden group hover:border-red-500/20 transition-colors">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
+                  <Wallet className="h-5 w-5 text-red-400/60 mb-4" />
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-b from-white to-stone-400 bg-clip-text text-transparent">
+                    Millions
+                  </p>
+                  <p className="text-sm font-medium text-stone-300 mt-1">lost per year</p>
+                  <p className="text-[13px] text-stone-500 mt-2 leading-relaxed">
+                    Lost goods, disputed deliveries, unrecovered logistics costs. It compounds every month you operate without proof.
+                  </p>
+                </div>
+              </FadeIn>
+
+              <FadeIn delay={0.2}>
+                <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 overflow-hidden group hover:border-amber-500/20 transition-colors">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+                  <Clock className="h-5 w-5 text-amber-400/60 mb-4" />
+                  <p className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-b from-white to-stone-400 bg-clip-text text-transparent">
+                    Hours
+                  </p>
+                  <p className="text-sm font-medium text-stone-300 mt-1">wasted chasing updates</p>
+                  <p className="text-[13px] text-stone-500 mt-2 leading-relaxed">
+                    Calling riders, checking WhatsApp groups. Manual tracking that breaks down past 10 shipments a day.
+                  </p>
+                </div>
+              </FadeIn>
+            </div>
           </div>
         </div>
       </section>
@@ -355,23 +399,6 @@ export default function LandingPage() {
 }
 
 /* ── Subcomponents ──────────────────────────────────────────────────────── */
-
-function ProblemCard({ icon, stat, label, description }: {
-  icon: React.ReactNode; stat: string; label: string; description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-colors">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="text-orange-400">{icon}</div>
-        <div>
-          <span className="text-2xl font-bold text-white">{stat}</span>
-          <span className="text-xs text-stone-500 ml-2">{label}</span>
-        </div>
-      </div>
-      <p className="text-[13px] text-stone-400 leading-relaxed">{description}</p>
-    </div>
-  );
-}
 
 function BentoCard({ icon, gradient, title, description }: {
   icon: React.ReactNode; gradient: string; title: string; description: string;
