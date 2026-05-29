@@ -1,0 +1,14 @@
+{
+  "name": "trackam",
+  "version": "0.1.0",
+  "description": "Install and manage your Trackam logistics platform",
+  "bin": {
+    "trackam": "./bin/trackam.js"
+  },
+  "files": [
+    "bin/",
+    "lib/"
+  ],
+  "keywords": ["logistics", "trackam", "cli"],
+  "license": "MIT"
+}
