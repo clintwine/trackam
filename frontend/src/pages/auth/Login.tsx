@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { clearAuthToken, setAuthToken } from "@/lib/authToken";
+import { setAuthToken } from "@/lib/authToken";
 import { MISSING_API_BASE_URL_MESSAGE } from "@/lib/runtimeConfig";
 import { login } from "@/services/auth.api";
 import { authClient } from "@/services/authClient";
@@ -38,13 +38,12 @@ export default function Login() {
         throw new Error("Authenticated session was not established.");
       }
 
-      // Session cookie is now set by the backend — clear the short-lived
-      // localStorage token so an expired Bearer never triggers a false 401
-      clearAuthToken();
-
+      // Keep the Bearer token in localStorage — cross-domain deployments
+      // (e.g. Railway) can't rely on cookies alone because browsers
+      // restrict third-party cookie sending.  The token expires in 1h;
+      // the session cookie (7 days, same-domain) takes over after that.
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      clearAuthToken();
       console.error(err);
 
       const message =

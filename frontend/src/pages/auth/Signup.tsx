@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { setAuthToken, clearAuthToken } from "@/lib/authToken";
+import { setAuthToken } from "@/lib/authToken";
 import { MISSING_API_BASE_URL_MESSAGE } from "@/lib/runtimeConfig";
 import { signup } from "@/services/auth.api";
 import { authClient } from "@/services/authClient";
@@ -45,11 +45,9 @@ export default function Signup() {
         throw new Error("Authenticated session was not established.");
       }
 
-      // Session cookie is working — clear the short-lived Bearer token
-      clearAuthToken();
+      // Keep Bearer token — cross-domain deployments can't rely on cookies
       navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
-      clearAuthToken();
       const message =
         err instanceof Error && err.message === MISSING_API_BASE_URL_MESSAGE
           ? "Sign up is unavailable because this frontend deployment is not connected to the API yet."
