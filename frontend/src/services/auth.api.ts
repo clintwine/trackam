@@ -25,14 +25,14 @@ export async function login(payload: LoginPayload) {
   const { data } = await apiClient.post("/api/auth/login", payload, {
     withCredentials: true,
   });
-  return data as { idToken?: string; [key: string]: unknown };
+  return data as { idToken?: string; sessionToken?: string; [key: string]: unknown };
 }
 
 export async function signup(payload: SignupPayload) {
   const { data } = await apiClient.post("/api/auth/signup", payload, {
     withCredentials: true,
   });
-  return data as { idToken?: string; [key: string]: unknown };
+  return data as { idToken?: string; sessionToken?: string; [key: string]: unknown };
 }
 
 export async function forgotPassword(payload: ForgotPasswordPayload) {

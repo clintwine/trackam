@@ -29,8 +29,12 @@ export default function Login() {
 
     try {
       const res = await login(values);
-      if (res.idToken) {
-        setAuthToken(res.idToken);
+      // Prefer the long-lived session token (7 days) over the short-lived
+      // idToken (1 hour) — critical for cross-domain deployments where
+      // the browser may not send the session cookie.
+      const token = (res.sessionToken || res.idToken) as string | undefined;
+      if (token) {
+        setAuthToken(token);
       }
 
       const authResult = await authClient.getCurrentUser();

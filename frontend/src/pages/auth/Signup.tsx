@@ -34,9 +34,11 @@ export default function Signup() {
         password: values.password,
         profile: { displayName: values.companyName.trim() },
       });
-      // Set Bearer token temporarily so the session verification call succeeds
-      if (res.idToken) {
-        setAuthToken(res.idToken as string);
+      // Prefer the long-lived session token (7 days) over the short-lived
+      // idToken (1 hour) — critical for cross-domain deployments.
+      const token = (res.sessionToken || res.idToken) as string | undefined;
+      if (token) {
+        setAuthToken(token);
       }
 
       // Verify the session cookie was established before navigating

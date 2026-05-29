@@ -62,7 +62,10 @@ router.post(
 
     res.cookie(SESSION_COOKIE_NAME, sessionCookie, buildCookieOptions(expiresIn));
 
-    res.status(201).json(result);
+    // Return the long-lived session token in the body so the frontend
+    // can store it in localStorage — cross-domain deployments can't
+    // rely on the cookie being sent by the browser.
+    res.status(201).json({ ...result, sessionToken: sessionCookie });
   })
 );
 
@@ -95,7 +98,7 @@ router.post(
 
     res.cookie(SESSION_COOKIE_NAME, sessionCookie, buildCookieOptions(expiresIn));
 
-    res.json(result);
+    res.json({ ...result, sessionToken: sessionCookie });
   })
 );
 
