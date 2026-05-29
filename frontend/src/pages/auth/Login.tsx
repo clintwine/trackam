@@ -38,6 +38,10 @@ export default function Login() {
         throw new Error("Authenticated session was not established.");
       }
 
+      // Session cookie is now set by the backend — clear the short-lived
+      // localStorage token so an expired Bearer never triggers a false 401
+      clearAuthToken();
+
       navigate("/dashboard", { replace: true });
     } catch (err) {
       clearAuthToken();

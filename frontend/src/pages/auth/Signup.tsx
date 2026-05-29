@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { setAuthToken } from "@/lib/authToken";
+import { setAuthToken, clearAuthToken } from "@/lib/authToken";
 import { signup } from "@/services/auth.api";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 
@@ -32,9 +32,12 @@ export default function Signup() {
         password: values.password,
         profile: { displayName: values.companyName.trim() },
       });
+      // Temporarily set token for any immediate API calls, then clear it —
+      // the session cookie (now set by the backend on signup) handles persistence
       if (res.idToken) {
         setAuthToken(res.idToken as string);
       }
+      clearAuthToken();
       navigate("/dashboard");
     } catch (err: unknown) {
       const msg =

@@ -34,6 +34,27 @@ router.post(
       profile: profile || {},
     });
 
+    // Set session cookie (same as login) so the user stays authenticated
+    const { sessionCookie, expiresIn } =
+      await AuthService.createSessionCookie(
+        result.idToken,
+        SESSION_COOKIE_MAX_AGE_MS
+      );
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: SESSION_COOKIE_SECURE,
+      sameSite: "lax",
+      maxAge: expiresIn,
+      path: "/",
+    };
+
+    if (SESSION_COOKIE_DOMAIN) {
+      cookieOptions.domain = SESSION_COOKIE_DOMAIN;
+    }
+
+    res.cookie(SESSION_COOKIE_NAME, sessionCookie, cookieOptions);
+
     res.status(201).json(result);
   })
 );
