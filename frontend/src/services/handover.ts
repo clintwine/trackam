@@ -91,6 +91,7 @@ export const publicHandoverApi = {
     receiverActorType: ActorType;
     latitude?: number;
     longitude?: number;
+    bypassReason?: string;
   }) =>
     axios.post<HandoverConfirmation>(`${publicBase()}/api/handover/confirm`, body).then((r) => r.data),
 };
@@ -267,6 +268,7 @@ export const publicBatchApi = {
     receiverActorType: ActorType;
     latitude?: number;
     longitude?: number;
+    bypassReason?: string;
   }) =>
     axios.post<BulkHandoverConfirmed>(`${publicBase()}/api/handover/confirm-bulk`, body).then((r) => r.data),
 };

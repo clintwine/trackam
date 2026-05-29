@@ -32,6 +32,10 @@ export default function ScanPage() {
   const [gpsStatus, setGpsStatus] = useState<"idle" | "fetching" | "ok" | "denied">("idle");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  // ID verification bypass (when provider is unavailable)
+  const [needsBypass, setNeedsBypass] = useState(false);
+  const [bypassReason, setBypassReason] = useState("");
+
   useEffect(() => {
     if (!token && !waybillId) {
       setError("No valid token or waybill ID in this link.");
@@ -75,9 +79,15 @@ export default function ScanPage() {
     );
   }
 
+  function isIdProviderDown(err: unknown): boolean {
+    const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+    return resp?.status === 503 && (resp?.data?.message?.includes("verification provider") ?? false);
+  }
+
   async function handleConfirmSingle(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
+    if (needsBypass && bypassReason.trim().length < 10) return;
     setPhase("submitting");
     try {
       const result = await publicHandoverApi.confirm({
@@ -88,10 +98,16 @@ export default function ScanPage() {
         receiverActorType,
         latitude: coords?.lat,
         longitude: coords?.lng,
+        bypassReason: needsBypass ? bypassReason.trim() : undefined,
       });
       setConfirmation(result);
       setPhase("success");
     } catch (err: unknown) {
+      if (isIdProviderDown(err) && !needsBypass) {
+        setNeedsBypass(true);
+        setPhase("token-form");
+        return;
+      }
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Handover failed. Please try again.";
       setError(msg);
       setPhase("error");
@@ -101,6 +117,7 @@ export default function ScanPage() {
   async function handleConfirmBatch(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
+    if (needsBypass && bypassReason.trim().length < 10) return;
     setPhase("submitting");
     try {
       const result = await publicBatchApi.confirm({
@@ -111,10 +128,16 @@ export default function ScanPage() {
         receiverActorType,
         latitude: coords?.lat,
         longitude: coords?.lng,
+        bypassReason: needsBypass ? bypassReason.trim() : undefined,
       });
       setConfirmation(result);
       setPhase("success");
     } catch (err: unknown) {
+      if (isIdProviderDown(err) && !needsBypass) {
+        setNeedsBypass(true);
+        setPhase("batch-form");
+        return;
+      }
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Handover failed. Please try again.";
       setError(msg);
       setPhase("error");
@@ -174,7 +197,9 @@ export default function ScanPage() {
               gpsStatus={gpsStatus} coords={coords} requestGps={requestGps}
             />
 
-            <button type="submit" className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800">
+            {needsBypass && <BypassReasonField value={bypassReason} onChange={setBypassReason} />}
+
+            <button type="submit" disabled={needsBypass && bypassReason.trim().length < 10} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50">
               <ShieldCheck className="h-4 w-4" /> Confirm handover
             </button>
           </form>
@@ -225,7 +250,9 @@ export default function ScanPage() {
               gpsStatus={gpsStatus} coords={coords} requestGps={requestGps}
             />
 
-            <button type="submit" className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800">
+            {needsBypass && <BypassReasonField value={bypassReason} onChange={setBypassReason} />}
+
+            <button type="submit" disabled={needsBypass && bypassReason.trim().length < 10} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50">
               <ShieldCheck className="h-4 w-4" /> Confirm receipt of all {batchInfo.shipments.length} shipments
             </button>
           </form>
@@ -288,6 +315,28 @@ export default function ScanPage() {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function BypassReasonField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+      <p className="text-xs font-semibold text-amber-800">Identity verification is temporarily unavailable</p>
+      <p className="text-[11px] text-amber-700">
+        The BVN/ID verification service is currently down. You can still proceed by providing a reason for the override below. The operator accepts liability for this handover.
+      </p>
+      <textarea
+        required
+        minLength={10}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="e.g. Receiver verified in person with physical ID card"
+        className="w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 min-h-[60px]"
+      />
+      {value.trim().length > 0 && value.trim().length < 10 && (
+        <p className="text-[11px] text-amber-600">Reason must be at least 10 characters</p>
+      )}
     </div>
   );
 }
