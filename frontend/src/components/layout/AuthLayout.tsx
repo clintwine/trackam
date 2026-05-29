@@ -38,7 +38,7 @@ export function AuthLayout({
         </header>
 
         {/* Card */}
-        <section className="rounded-2xl border border-white/[0.08] bg-[#0c1522] px-6 pt-8 pb-6 shadow-2xl shadow-black/30">
+        <section className="rounded-2xl border border-white/[0.08] bg-[#0c1522] px-6 py-10 shadow-2xl shadow-black/30">
           <div className="mb-8 text-center space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             {description && (
