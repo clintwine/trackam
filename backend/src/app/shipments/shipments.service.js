@@ -6,7 +6,7 @@ const { query } = require("../../core/db/postgres");
 const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted", "handed_over", "disputed"];
 
 const VALID_TRANSITIONS = {
-  pending:     ["in_transit", "failed"],
+  pending:     ["in_transit", "failed", "handed_over"],
   in_transit:  ["delivered", "ghosted", "failed", "handed_over"],
   handed_over: ["in_transit", "delivered", "ghosted", "failed", "handed_over", "disputed"],
   ghosted:     ["in_transit", "disputed"],
