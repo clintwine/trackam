@@ -17,14 +17,15 @@ module.exports = function update() {
   step("Updating CLI");
   const cliDir = path.join(TRACKAM_DIR, "cli");
   try {
+    const fs = require("fs");
     run("npm pack", { cwd: cliDir, silent: true });
-    run("npm install -g trackam-*.tgz", { cwd: cliDir, silent: true });
-    // Clean up tarball
-    try {
-      const fs = require("fs");
-      const tarballs = fs.readdirSync(cliDir).filter((f) => f.startsWith("trackam-") && f.endsWith(".tgz"));
-      for (const t of tarballs) fs.unlinkSync(path.join(cliDir, t));
-    } catch { /* ignore cleanup errors */ }
+    // Find the tarball by name (glob doesn't expand on Windows)
+    const tarball = fs.readdirSync(cliDir).find((f) => f.startsWith("trackam-") && f.endsWith(".tgz"));
+    if (!tarball) throw new Error("npm pack did not produce a tarball");
+    const tarballPath = path.join(cliDir, tarball);
+    run(`npm install -g "${tarballPath}"`, { cwd: cliDir, silent: true });
+    // Clean up
+    try { fs.unlinkSync(tarballPath); } catch { /* ignore */ }
     ok("CLI updated");
   } catch (err) {
     warn("CLI update failed — continuing with current version");
