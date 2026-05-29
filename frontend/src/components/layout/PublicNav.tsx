@@ -69,7 +69,7 @@ export function PublicNav() {
         <div className="flex items-center justify-between h-12 gap-4">
 
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 shrink-0">
+          <a href="/" className="flex items-center gap-2 shrink-0 md:w-44">
             <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
               <Package className="h-3.5 w-3.5 text-white" />
             </div>
@@ -125,7 +125,7 @@ export function PublicNav() {
           </div>
 
           {/* Right actions */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
+          <div className="hidden md:flex items-center gap-2 shrink-0 w-44 justify-end">
             <a
               href="https://github.com/Jeffreyon/trackam"
               target="_blank"
