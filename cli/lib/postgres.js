@@ -82,19 +82,22 @@ function ensurePostgresRunning() {
 
   if (!pgCtlRunning) {
     dim("Starting PostgreSQL...");
+    // Use -w (wait) but with a timeout to prevent indefinite hangs.
+    // stdio: "ignore" prevents pipe deadlocks on Windows where the
+    // postgres child process inherits piped handles.
     const start = spawnSync("pg_ctl", [
       "start", "-D", PG_DATA, "-l", PG_LOG,
       "-o", `-p ${PG_PORT} -h ${PG_HOST}`,
-      "-w", // wait until started
+      "-w", "-t", "30",
     ], {
       encoding: "utf8",
-      stdio: "pipe",
+      stdio: "ignore",
+      timeout: 60_000,
     });
 
     if (start.status !== 0 && !isPostgresReady()) {
       fail("Failed to start PostgreSQL.");
       dim(`Check the log: ${PG_LOG}`);
-      dim(start.stderr || "");
       return false;
     }
   }
@@ -168,11 +171,16 @@ function isPostgresReady() {
   return result.status === 0;
 }
 
+function sleepMs(ms) {
+  // Cross-platform blocking sleep without shelling out
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
 function waitForPostgres(timeoutMs = 20_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (isPostgresReady()) return true;
-    spawnSync(isWin ? "timeout" : "sleep", isWin ? ["/t", "1", "/nobreak"] : ["0.5"], { stdio: "ignore" });
+    sleepMs(500);
   }
   return false;
 }
