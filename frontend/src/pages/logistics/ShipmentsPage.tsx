@@ -52,7 +52,19 @@ export default function ShipmentsPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(filter || undefined); }, [filter]);
+  // On mount, sync handover statuses from OLI then load the list.
+  // On filter change, just reload from local DB (sync already ran).
+  const hasSynced = useRef(false);
+  useEffect(() => {
+    if (!hasSynced.current) {
+      hasSynced.current = true;
+      shipmentsApi.syncHandoverStatus()
+        .catch(() => {}) // non-fatal — stale status is better than a blank page
+        .finally(() => load(filter || undefined));
+    } else {
+      load(filter || undefined);
+    }
+  }, [filter]);
 
   useEffect(() => {
     if (!selectMode) setSelected(new Set());

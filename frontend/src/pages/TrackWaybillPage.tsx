@@ -343,7 +343,10 @@ export default function TrackWaybillPage() {
             </div>
 
             <p className="text-center text-[11px] text-stone-400">
-              Powered by Open Logistics Interconnect (OLI) · trackam.ng
+              Powered by Open Logistics Interconnect (OLI) ·{" "}
+              <a href="/" className="underline underline-offset-2 hover:text-white transition-colors">
+                trackam.bkydstudios.com
+              </a>
             </p>
           </div>
         )}

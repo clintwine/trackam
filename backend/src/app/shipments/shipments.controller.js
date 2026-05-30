@@ -87,6 +87,17 @@ function toJsonLd(s, baseUrl) {
 
 router.use(localAuthMiddleware);
 
+// ── POST /sync-handover-status — bulk-sync from OLI custody chains ──────────
+// Finds all pending/in_transit shipments with waybill IDs, checks the OLI
+// chain for real handovers, and updates local status to "handed_over" where
+// needed.  Called by ShipmentsPage on mount so the table always reflects the
+// latest custody state without visiting each shipment individually.
+
+router.post("/sync-handover-status", asyncHandler(async (req, res) => {
+  const synced = await ShipmentsService.syncHandoverStatuses(req.user.uid);
+  res.json({ synced });
+}));
+
 router.get("/", asyncHandler(async (req, res) => {
   const { status, riderId, limit, offset } = req.query;
   const shipments = await ShipmentsService.listShipments(req.user.uid, {

@@ -121,6 +121,8 @@ export const shipmentsApi = {
     apiClient.patch<Shipment>(`/api/shipments/${id}/status`, { status, note }).then((r) => r.data),
   reclaim: (id: string, reason?: string) =>
     apiClient.post<Shipment>(`/api/shipments/${id}/reclaim`, { reason }).then((r) => r.data),
+  syncHandoverStatus: () =>
+    apiClient.post<{ synced: number }>("/api/shipments/sync-handover-status").then((r) => r.data),
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
