@@ -60,7 +60,7 @@ export default function ScanPage() {
         publicHandoverApi.getTokenInfo(token)
           .then((info) => {
             setTokenInfo(info);
-            setReceiverActorType(info.giverActorType);
+            setReceiverActorType(info.receiverActorType || info.giverActorType);
             setPhase("token-form");
           })
           .catch((err) => {

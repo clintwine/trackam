@@ -20,6 +20,7 @@ export interface TokenInfo {
   token: string;
   expiresAt: string;
   giverActorType: ActorType;
+  receiverActorType?: ActorType;
   giverName: string | null;
   idScheme: string;
   shipment: {
