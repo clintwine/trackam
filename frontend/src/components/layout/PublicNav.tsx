@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Package, Github, Menu, X, Search, Loader2, FileText } from "lucide-react";
+import { Package, Github, Menu, X, Search, Loader2, FileText, LayoutDashboard } from "lucide-react";
 import { publicWaybillApi } from "@/services/handover";
+import { getAuthToken } from "@/lib/authToken";
 
 const NAV_LINKS = [
   { href: "/waybill", label: "Generate Waybill", icon: FileText },
@@ -15,6 +16,7 @@ export function PublicNav() {
   const [scrolled, setScrolled] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isSignedIn = Boolean(getAuthToken());
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -135,18 +137,29 @@ export function PublicNav() {
             >
               <Github className="h-3.5 w-3.5" />
             </a>
-            <a
-              href="/auth/login"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-stone-400 hover:text-white rounded-lg transition-colors"
-            >
-              Log in
-            </a>
-            <a
-              href="/auth/signup"
-              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white px-3.5 h-8 text-[12px] font-semibold shadow-sm shadow-orange-500/20 transition-all"
-            >
-              Sign up
-            </a>
+            {isSignedIn ? (
+              <a
+                href="/dashboard"
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white px-3.5 h-8 text-[12px] font-semibold shadow-sm shadow-orange-500/20 transition-all"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
+              </a>
+            ) : (
+              <>
+                <a
+                  href="/auth/login"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-stone-400 hover:text-white rounded-lg transition-colors"
+                >
+                  Log in
+                </a>
+                <a
+                  href="/auth/signup"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white px-3.5 h-8 text-[12px] font-semibold shadow-sm shadow-orange-500/20 transition-all"
+                >
+                  Sign up
+                </a>
+              </>
+            )}
           </div>
 
           {/* Mobile toggle */}
@@ -204,18 +217,29 @@ export function PublicNav() {
               <Github className="h-4 w-4" />
               GitHub
             </a>
-            <a
-              href="/auth/login"
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.06] text-white h-9 text-sm font-medium transition-all"
-            >
-              Log in
-            </a>
-            <a
-              href="/auth/signup"
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white h-9 text-sm font-semibold shadow-sm shadow-orange-500/20 transition-all"
-            >
-              Sign up
-            </a>
+            {isSignedIn ? (
+              <a
+                href="/dashboard"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white h-9 text-sm font-semibold shadow-sm shadow-orange-500/20 transition-all"
+              >
+                <LayoutDashboard className="h-4 w-4" /> Dashboard
+              </a>
+            ) : (
+              <>
+                <a
+                  href="/auth/login"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.06] text-white h-9 text-sm font-medium transition-all"
+                >
+                  Log in
+                </a>
+                <a
+                  href="/auth/signup"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white h-9 text-sm font-semibold shadow-sm shadow-orange-500/20 transition-all"
+                >
+                  Sign up
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}

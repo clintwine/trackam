@@ -63,7 +63,7 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <div className={`flex items-center gap-2.5 px-3 h-14 border-b border-sidebar-border shrink-0 ${collapsed ? "justify-center" : ""}`}>
+      <a href="/" className={`flex items-center gap-2.5 px-3 h-14 border-b border-sidebar-border shrink-0 ${collapsed ? "justify-center" : ""}`}>
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary">
           <Truck className="h-4 w-4 text-white" />
         </div>
@@ -81,7 +81,7 @@ function SidebarContent({
             </motion.span>
           )}
         </AnimatePresence>
-      </div>
+      </a>
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
