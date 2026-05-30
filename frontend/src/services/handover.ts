@@ -165,6 +165,8 @@ export const waybillApi = {
     apiClient.post<{ shipmentId: string }>(`/api/waybill/claim`, data).then((r) => r.data),
   joinLeg: (waybillId: string, proofHash: string) =>
     apiClient.post<{ shipmentId: string; waybillId: string }>(`/api/waybill/${waybillId}/join-leg`, { proofHash }).then((r) => r.data),
+  confirmAndJoin: (token: string, receiverName: string) =>
+    apiClient.post<{ proofHash: string; shipmentId: string; waybillId: string }>(`/api/waybill/confirm-and-join`, { token, receiverName }).then((r) => r.data),
   lookupId: (waybillNumber: string) =>
     axios.get<{ id: string }>(`${publicBase()}/api/waybill/lookup/${encodeURIComponent(waybillNumber)}`).then((r) => r.data),
 };
@@ -254,6 +256,13 @@ export const custodianApi = {
 
   resendLink: (phone: string) =>
     axios.post<{ sent: boolean; sessionId: string }>(`${publicBase()}/api/custodian/resend-link`, { phone }).then((r) => r.data),
+
+  initiateBulkHandover: (custodianToken: string, actorType: ActorType) =>
+    axios.post<BulkHandoverInitiated>(
+      `${publicBase()}/api/custodian/initiate-bulk-handover`,
+      { actorType },
+      { headers: { Authorization: `Bearer ${custodianToken}` } }
+    ).then((r) => r.data),
 };
 
 export const publicBatchApi = {

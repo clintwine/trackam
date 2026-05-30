@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { setAuthToken } from "@/lib/authToken";
 import { MISSING_API_BASE_URL_MESSAGE } from "@/lib/runtimeConfig";
@@ -15,6 +15,7 @@ type LoginFormValues = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
@@ -41,7 +42,8 @@ export default function Login() {
         throw new Error("Authenticated session was not established.");
       }
 
-      navigate("/dashboard", { replace: true });
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       console.error(err);
 

@@ -70,8 +70,13 @@ export default function DriverHandoverPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [qrError, setQrError] = useState("");
+  const [bulkMode, setBulkMode] = useState(false);
 
-  const scanUrl = handoverToken ? `${window.location.origin}/scan?token=${handoverToken}` : null;
+  const scanUrl = handoverToken
+    ? (receiverActorType === "ACTOR_HUB" && !bulkMode)
+      ? `${window.location.origin}/join?token=${handoverToken}`
+      : `${window.location.origin}/scan?token=${handoverToken}`
+    : null;
 
   useEffect(() => {
     if (!sessionId) setPhase("find-session");
@@ -129,7 +134,12 @@ export default function DriverHandoverPage() {
     setSubmitting(true);
     setQrError("");
     try {
-      const result = await custodianApi.initiateHandover(custodianToken, receiverActorType, shipmentId);
+      let result;
+      if (bulkMode) {
+        result = await custodianApi.initiateBulkHandover(custodianToken, receiverActorType);
+      } else {
+        result = await custodianApi.initiateHandover(custodianToken, receiverActorType, shipmentId);
+      }
       setHandoverToken(result.token);
       setExpiresAt(result.expiresAt);
       const secs = Math.floor((new Date(result.expiresAt).getTime() - Date.now()) / 1000);
@@ -146,6 +156,7 @@ export default function DriverHandoverPage() {
   }
 
   async function handleRunShipmentHandover(item: RunShipmentItem) {
+    setBulkMode(false);
     setActiveRunShipment(item);
     setReceiverActorType("ACTOR_RECEIVER");
     setPhase("actor-select");
@@ -404,9 +415,24 @@ export default function DriverHandoverPage() {
                 </p>
               </div>
               <p className="text-[11px] text-stone-400">
-                Tap a shipment to hand it over individually.
+                Tap a shipment to hand it over individually, or hand over all at once.
               </p>
             </div>
+
+            {(custody.shipments?.length ?? 0) > 1 && (
+              <button
+                onClick={() => {
+                  setBulkMode(true);
+                  setActiveRunShipment(null);
+                  setReceiverActorType("ACTOR_HUB");
+                  setPhase("actor-select");
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-10 text-sm font-semibold hover:bg-purple-800 transition-colors"
+              >
+                <Layers className="h-4 w-4" />
+                Hand over all ({custody.shipments?.length})
+              </button>
+            )}
 
             <div className="space-y-2">
               {(custody.shipments ?? []).map((item) => (
@@ -451,7 +477,14 @@ export default function DriverHandoverPage() {
               <h1 className="text-base font-semibold text-white">Who are you handing to?</h1>
               <p className="text-xs text-stone-400 mt-1">Select the role of the person receiving the package.</p>
             </div>
-            {activeRunShipment && (
+            {bulkMode && custody?.shipments && (
+              <div className="rounded-lg border border-purple-400/15 bg-purple-500/10 px-3 py-2">
+                <p className="text-[11px] text-purple-400 font-medium">
+                  Bulk handover — {custody.shipments.length} shipment{custody.shipments.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+            )}
+            {!bulkMode && activeRunShipment && (
               <div className="rounded-lg border border-purple-400/15 bg-purple-500/10 px-3 py-2">
                 <p className="text-[11px] text-purple-400 font-medium truncate">
                   {activeRunShipment.waybillNumber || activeRunShipment.goodsDescription}

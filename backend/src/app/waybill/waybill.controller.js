@@ -337,6 +337,72 @@ router.post("/recover/:shipmentId", localAuthOptional, asyncHandler(async (req, 
   }
 }));
 
+// ── POST /confirm-and-join — confirm handover + join leg in one step ─────────
+// Used by the /join page: an authenticated operator scans a driver's QR,
+// confirms the handover (creating the PoH), and joins the custody leg.
+
+router.post("/confirm-and-join", localAuthOptional, asyncHandler(async (req, res) => {
+  const userId = req.user?.uid;
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const { token, receiverName } = req.body;
+  if (!token) return res.status(400).json({ message: "token is required" });
+
+  // Step 1: confirm the handover via OLI switch (public endpoint, no operator auth needed)
+  let confirmData;
+  try {
+    const { status, data } = await oliPost("/api/handover/confirm", null, {
+      token,
+      receiverName: receiverName || "Operator",
+      receiverGovtId: "",
+      receiverActorType: "ACTOR_HUB",
+    });
+    if (status !== 200 && status !== 201) {
+      return res.status(status).json(data);
+    }
+    confirmData = data;
+  } catch (err) {
+    return res.status(502).json({ error: "OLI switch unavailable", detail: err.message });
+  }
+
+  const { proofHash, waybillId } = confirmData;
+  if (!waybillId || !proofHash) {
+    return res.status(502).json({ error: "Handover confirmed but missing waybillId or proofHash" });
+  }
+
+  // Step 2: join the custody leg
+  let joinData;
+  try {
+    const { status, data } = await oliPost(`/api/waybill/${waybillId}/join-leg`, userId, { proofHash });
+    if (status !== 200 && status !== 201) {
+      return res.status(status).json(data);
+    }
+    joinData = data;
+  } catch (err) {
+    return res.status(502).json({ error: "OLI switch unavailable during join-leg", detail: err.message });
+  }
+
+  // Step 3: mirror locally
+  const { shipmentId } = joinData;
+  if (shipmentId) {
+    try {
+      const { status: wStatus, data: waybill } = await oliGet(`/api/waybill/${waybillId}`, userId);
+      if (wStatus === 200 && waybill?.id) {
+        await upsertLiteWaybill(waybill);
+        await upsertLocalShipment({ shipmentId, userId, waybillId: waybill.id, waybill });
+      }
+    } catch (dbErr) {
+      console.error("[waybill.controller] Failed to mirror joined shipment locally:", dbErr.message);
+    }
+  }
+
+  return res.json({
+    ...confirmData,
+    shipmentId: joinData.shipmentId,
+    waybillId:  joinData.waybillId,
+  });
+}));
+
 // ── GET /stream/notifications — SSE stream for incoming custody events ────────
 // NotificationBell subscribes here using ?token= query param.
 // localAuthOptional already extracts the token from the query string.
