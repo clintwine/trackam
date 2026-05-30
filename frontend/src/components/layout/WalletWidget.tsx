@@ -41,9 +41,9 @@ export default function WalletWidget() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 h-8 animate-pulse">
-        <Wallet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="block w-14 h-2.5 rounded bg-muted-foreground/20" />
+      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2.5 h-8 animate-pulse">
+        <Wallet className="h-3.5 w-3.5 text-stone-600 shrink-0" />
+        <span className="block w-14 h-2.5 rounded bg-white/[0.08]" />
       </div>
     );
   }
@@ -52,25 +52,25 @@ export default function WalletWidget() {
   if (unavailable || !wallet) {
     return (
       <div
-        className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 h-8 opacity-40"
+        className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2.5 h-8 opacity-40"
         title="Connect your OLI API key in Settings to view your wallet balance"
       >
-        <Wallet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-xs font-medium text-muted-foreground tabular-nums">—</span>
+        <Wallet className="h-3.5 w-3.5 text-stone-500 shrink-0" />
+        <span className="text-xs font-medium text-stone-500 tabular-nums">&mdash;</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 h-8" title="OLI Switch wallet balance">
-      <Wallet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      <span className="text-xs font-medium text-foreground tabular-nums">
+    <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2.5 h-8" title="OLI Switch wallet balance">
+      <Wallet className="h-3.5 w-3.5 text-orange-400/70 shrink-0" />
+      <span className="text-xs font-medium text-stone-300 tabular-nums">
         {formatNairaRaw(wallet.balance)}
       </span>
       <button
         onClick={() => load(true)}
         disabled={refreshing}
-        className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 ml-0.5"
+        className="text-stone-600 hover:text-stone-300 transition-colors disabled:opacity-40 ml-0.5"
         aria-label="Refresh wallet balance"
       >
         <RefreshCw className={["h-3 w-3", refreshing ? "animate-spin" : ""].join(" ")} />

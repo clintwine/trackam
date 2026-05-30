@@ -63,8 +63,8 @@ function SidebarContent({
   return (
     <>
       {/* Logo */}
-      <a href="/" className={`flex items-center gap-2.5 px-3 h-14 border-b border-sidebar-border shrink-0 ${collapsed ? "justify-center" : ""}`}>
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary">
+      <a href="/" className={`flex items-center gap-2.5 px-3 h-14 border-b border-white/[0.06] shrink-0 ${collapsed ? "justify-center" : ""}`}>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
           <Truck className="h-4 w-4 text-white" />
         </div>
         <AnimatePresence initial={false}>
@@ -75,7 +75,7 @@ function SidebarContent({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -6 }}
               transition={{ duration: 0.14 }}
-              className="text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap"
+              className="text-sm font-bold tracking-tight text-white whitespace-nowrap"
             >
               Trackam
             </motion.span>
@@ -93,11 +93,11 @@ function SidebarContent({
             onClick={onNavClick}
             className={({ isActive }) =>
               [
-                "flex items-center gap-2.5 rounded-md text-xs font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all duration-150",
                 collapsed ? "h-9 w-full justify-center px-0" : "h-9 px-3",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                  ? "bg-orange-500/[0.12] text-orange-400 shadow-sm shadow-orange-500/5"
+                  : "text-stone-500 hover:bg-white/[0.04] hover:text-stone-300",
               ].join(" ")
             }
             title={collapsed ? label : undefined}
@@ -122,7 +122,7 @@ function SidebarContent({
       </nav>
 
       {/* Footer */}
-      <div className="px-2 pb-4 space-y-1 border-t border-sidebar-border pt-3 shrink-0">
+      <div className="px-2 pb-4 space-y-1 border-t border-white/[0.06] pt-3 shrink-0">
         <AnimatePresence initial={false}>
           {!collapsed && profile && (
             <motion.div
@@ -131,12 +131,12 @@ function SidebarContent({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              className="px-3 py-2.5 rounded-md bg-sidebar-accent/50 mb-2"
+              className="px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] mb-2"
             >
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
+              <p className="text-xs font-medium text-stone-300 truncate">
                 {(profile as any).displayName || (profile as any).email}
               </p>
-              <p className="text-[11px] text-sidebar-foreground/50 truncate">{(profile as any).email}</p>
+              <p className="text-[11px] text-stone-600 truncate">{(profile as any).email}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -147,19 +147,19 @@ function SidebarContent({
             disabled={loggingOut}
             title="Log out"
             className={[
-              "flex items-center justify-center gap-2 rounded-md text-xs font-medium text-sidebar-foreground/60 transition-colors hover:bg-destructive/20 hover:text-red-400 disabled:opacity-50",
+              "flex items-center justify-center gap-2 rounded-lg text-xs font-medium text-stone-600 transition-colors hover:bg-red-500/[0.1] hover:text-red-400 disabled:opacity-50",
               collapsed ? "h-9 w-full" : "h-9 flex-1 px-3",
             ].join(" ")}
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" />
-            {!collapsed && (loggingOut ? "Logging out…" : "Log out")}
+            {!collapsed && (loggingOut ? "Logging out..." : "Log out")}
           </button>
 
           {showCollapseButton && onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
               title={collapsed ? "Expand" : "Collapse"}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-stone-600 transition-colors hover:bg-white/[0.04] hover:text-stone-400"
             >
               {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
             </button>
@@ -207,13 +207,13 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="h-screen bg-background text-foreground flex overflow-hidden">
+    <div className="h-screen bg-[#060d18] text-white flex overflow-hidden">
 
       {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
       <motion.aside
         animate={{ width: collapsed ? 56 : 220 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
-        className="hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border overflow-hidden shrink-0"
+        className="hidden md:flex flex-col bg-[#0a1220] border-r border-white/[0.06] overflow-hidden shrink-0"
       >
         <SidebarContent
           {...sidebarProps}
@@ -234,7 +234,7 @@ export default function DashboardLayout() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
               onClick={() => setDrawerOpen(false)}
             />
 
@@ -245,12 +245,12 @@ export default function DashboardLayout() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border md:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#0a1220] border-r border-white/[0.06] md:hidden"
             >
               {/* Close button */}
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="absolute right-3 top-3.5 flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/40 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors"
+                className="absolute right-3 top-3.5 flex h-7 w-7 items-center justify-center rounded-lg text-stone-600 hover:bg-white/[0.06] hover:text-stone-400 transition-colors"
                 aria-label="Close menu"
               >
                 <X className="h-4 w-4" />
@@ -269,28 +269,28 @@ export default function DashboardLayout() {
 
       {/* ── Main content ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:px-6">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#060d18]/80 backdrop-blur-xl px-4 md:px-6">
           {/* Mobile hamburger + logo */}
           <div className="flex items-center gap-2.5 md:hidden">
             <button
               onClick={() => setDrawerOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-foreground hover:bg-secondary transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-400 hover:bg-white/[0.06] hover:text-white transition-colors"
               aria-label="Open menu"
             >
               <Menu className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
                 <Truck className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="text-sm font-semibold tracking-tight">Trackam</span>
+              <span className="text-sm font-bold tracking-tight text-white">Trackam</span>
             </div>
           </div>
 
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-semibold text-foreground">{page.title}</h1>
+            <h1 className="text-sm font-semibold text-white">{page.title}</h1>
             {page.description && (
-              <p className="hidden sm:block text-xs text-muted-foreground">{page.description}</p>
+              <p className="hidden sm:block text-xs text-stone-500">{page.description}</p>
             )}
           </div>
 

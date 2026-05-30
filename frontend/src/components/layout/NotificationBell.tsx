@@ -85,22 +85,22 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleOpen}
-        className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-white/[0.06] hover:text-white transition-colors"
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-500 text-[8px] font-bold text-white leading-none">
+          <span className="absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-500 text-[8px] font-bold text-white leading-none ring-2 ring-[#060d18]">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-border bg-white shadow-xl">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <p className="text-xs font-semibold text-foreground">Incoming custody alerts</p>
-            <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+        <div className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-white/[0.08] bg-[#0c1522] shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <p className="text-xs font-semibold text-stone-300">Incoming custody alerts</p>
+            <button onClick={() => setOpen(false)} className="text-stone-600 hover:text-stone-300 transition-colors">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -108,31 +108,31 @@ export default function NotificationBell() {
           <div className="max-h-72 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <ShieldCheck className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">No custody alerts yet</p>
+                <ShieldCheck className="h-6 w-6 text-stone-700 mx-auto mb-2" />
+                <p className="text-xs text-stone-600">No custody alerts yet</p>
               </div>
             ) : (
               notifications.map((n) => (
                 <a
                   key={n.id}
                   href={n.joinLegUrl || (n.waybillId ? `/track/${n.waybillId}` : `/dashboard/shipments/${n.shipmentId}`)}
-                  className="flex gap-3 px-4 py-3 hover:bg-secondary/50 border-b border-border/50 last:border-0 transition-colors"
+                  className="flex gap-3 px-4 py-3 hover:bg-white/[0.03] border-b border-white/[0.04] last:border-0 transition-colors"
                 >
                   <div className={[
                     "h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                    n.joinLegUrl ? "bg-orange-100" : "bg-purple-100",
+                    n.joinLegUrl ? "bg-orange-500/[0.15]" : "bg-purple-500/[0.15]",
                   ].join(" ")}>
-                    <ShieldCheck className={["h-3.5 w-3.5", n.joinLegUrl ? "text-orange-600" : "text-purple-600"].join(" ")} />
+                    <ShieldCheck className={["h-3.5 w-3.5", n.joinLegUrl ? "text-orange-400" : "text-purple-400"].join(" ")} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-foreground leading-snug">
+                    <p className="text-xs font-medium text-stone-200 leading-snug">
                       {n.joinLegUrl ? "New leg available" : "Handover"} — {n.receiverName}
                     </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className="text-[11px] text-stone-500 mt-0.5">
                       {ACTOR_LABELS[n.receiverActorType]} · {new Date(n.occurredAt).toLocaleString("en-NG")}
                     </p>
                     {n.joinLegUrl && (
-                      <p className="text-[10px] text-orange-600 font-medium mt-0.5">Tap to join this leg →</p>
+                      <p className="text-[10px] text-orange-400 font-medium mt-0.5">Tap to join this leg →</p>
                     )}
                   </div>
                 </a>

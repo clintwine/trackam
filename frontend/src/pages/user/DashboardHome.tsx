@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown, ShieldAlert, Skull, Clock } from "lucide-react";
+import { AlertTriangle, Package, Truck, CheckCircle2, Ghost, TrendingDown, ShieldAlert, Skull, Clock, ArrowRight } from "lucide-react";
 import { dashboardApi, type DashboardSummary, type Shipment } from "@/services/logistics";
 import { oliAccountApi, type OliAccountStatus } from "@/services/oliAccount";
 import { formatNaira } from "@/lib/format";
@@ -26,14 +26,14 @@ export default function DashboardHome() {
     <div className="space-y-6 max-w-5xl">
       {/* OLI Switch provisioning banner */}
       {(oliStatus === "pending" || oliStatus === "not_provisioned") && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] p-4 backdrop-blur-sm">
           <div className="flex items-start gap-3">
-            <Clock className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+            <Clock className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-blue-800">Your OLI Switch account is pending approval</p>
-              <p className="text-xs text-blue-700 mt-0.5">
+              <p className="text-sm font-semibold text-blue-300">Your OLI Switch account is pending approval</p>
+              <p className="text-xs text-blue-400/70 mt-0.5">
                 You'll receive an API key by email once your account is activated. Paste it in{" "}
-                <Link to="/dashboard/settings" className="underline hover:text-blue-900">Settings</Link> to start dispatching.
+                <Link to="/dashboard/settings" className="underline hover:text-blue-300 transition-colors">Settings</Link> to start dispatching.
               </p>
             </div>
           </div>
@@ -42,10 +42,10 @@ export default function DashboardHome() {
 
       {/* Alerts banner */}
       {alerts.length > 0 && (
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+        <div className="rounded-xl border border-orange-500/20 bg-orange-500/[0.06] p-4 backdrop-blur-sm">
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
-            <p className="text-sm font-semibold text-orange-800">
+            <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
+            <p className="text-sm font-semibold text-orange-300">
               {alerts.length} shipment{alerts.length !== 1 ? "s" : ""} need attention
             </p>
           </div>
@@ -54,20 +54,20 @@ export default function DashboardHome() {
               <Link
                 key={shipment.id}
                 to={`/dashboard/shipments/${shipment.id}`}
-                className="flex items-center justify-between rounded-md bg-white border border-orange-100 px-3 py-2 hover:border-orange-300 transition-colors"
+                className="flex items-center justify-between rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 hover:bg-white/[0.06] hover:border-orange-500/20 transition-all"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-stone-800 truncate">{shipment.goodsDescription}</p>
+                  <p className="text-xs font-medium text-stone-200 truncate">{shipment.goodsDescription}</p>
                   <p className="text-[11px] text-stone-500 truncate">
                     {shipment.pickupLocation} → {shipment.deliveryLocation}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 ml-3 shrink-0">
                   {shipment.delayFlag && (
-                    <span className="text-[11px] font-medium text-orange-700">Delayed</span>
+                    <span className="text-[11px] font-medium text-orange-400">Delayed</span>
                   )}
                   {shipment.ghostingFlag && (
-                    <span className="text-[11px] font-medium text-red-600">Ghosting risk</span>
+                    <span className="text-[11px] font-medium text-red-400">Ghosting risk</span>
                   )}
                   <RiskBadge score={shipment.riskScore} />
                 </div>
@@ -75,7 +75,7 @@ export default function DashboardHome() {
             ))}
           </div>
           {alerts.length > 3 && (
-            <Link to="/dashboard/shipments" className="mt-2 block text-[11px] text-orange-700 hover:underline">
+            <Link to="/dashboard/shipments" className="mt-2 block text-[11px] text-orange-400 hover:text-orange-300 transition-colors">
               View all {alerts.length} alerts →
             </Link>
           )}
@@ -84,21 +84,21 @@ export default function DashboardHome() {
 
       {/* Today */}
       <div>
-        <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">Today</p>
+        <p className="text-[11px] font-semibold text-stone-600 mb-3 uppercase tracking-[0.15em]">Today</p>
         <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Pending pickup" value={s.today.pending} icon={<Package className="h-4 w-4 text-stone-400" />} />
-          <StatCard label="In transit" value={s.today.inTransit} icon={<Truck className="h-4 w-4 text-blue-400" />} highlight={s.today.inTransit > 0} />
-          <StatCard label="Delivered" value={s.today.delivered} icon={<CheckCircle2 className="h-4 w-4 text-green-500" />} />
+          <StatCard label="Pending pickup" value={s.today.pending} icon={<Package className="h-4 w-4 text-stone-600" />} />
+          <StatCard label="In transit" value={s.today.inTransit} icon={<Truck className="h-4 w-4 text-blue-400/70" />} highlight={s.today.inTransit > 0} />
+          <StatCard label="Delivered" value={s.today.delivered} icon={<CheckCircle2 className="h-4 w-4 text-emerald-400/70" />} />
         </div>
       </div>
 
       {/* This month */}
       <div>
-        <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">This month</p>
+        <p className="text-[11px] font-semibold text-stone-600 mb-3 uppercase tracking-[0.15em]">This month</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Total shipments" value={s.month.totalShipments} />
-          <StatCard label="Logistics spend" value={formatNaira(s.month.totalCostKobo)} icon={<TrendingDown className="h-4 w-4 text-stone-400" />} />
-          <StatCard label="Ghosted" value={s.month.ghostedCount} icon={<Ghost className="h-4 w-4 text-orange-400" />} danger={s.month.ghostedCount > 0} />
+          <StatCard label="Logistics spend" value={formatNaira(s.month.totalCostKobo)} icon={<TrendingDown className="h-4 w-4 text-stone-600" />} />
+          <StatCard label="Ghosted" value={s.month.ghostedCount} icon={<Ghost className="h-4 w-4 text-orange-400/70" />} danger={s.month.ghostedCount > 0} />
           <StatCard label="Ghost rate" value={`${s.month.ghostRate}%`} danger={s.month.ghostRate > 10} />
         </div>
       </div>
@@ -106,26 +106,26 @@ export default function DashboardHome() {
       {/* Financial exposure */}
       {(s.exposure.valueAtRiskKobo > 0 || s.exposure.allTimeValueLostKobo > 0) && (
         <div>
-          <p className="text-[11px] font-medium text-muted-foreground mb-3 uppercase tracking-wider">Financial exposure</p>
+          <p className="text-[11px] font-semibold text-stone-600 mb-3 uppercase tracking-[0.15em]">Financial exposure</p>
           <div className="grid grid-cols-2 gap-3">
             {s.exposure.valueAtRiskKobo > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-xs">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[11px] text-amber-700">Currently at risk</p>
-                  <ShieldAlert className="h-4 w-4 text-amber-500" />
+                  <p className="text-[11px] text-amber-400/70">Currently at risk</p>
+                  <ShieldAlert className="h-4 w-4 text-amber-400/50" />
                 </div>
-                <p className="text-xl font-semibold text-amber-900">{formatNaira(s.exposure.valueAtRiskKobo)}</p>
-                <p className="text-[11px] text-amber-600 mt-1">Goods + logistics in active shipments</p>
+                <p className="text-xl font-semibold text-amber-300">{formatNaira(s.exposure.valueAtRiskKobo)}</p>
+                <p className="text-[11px] text-amber-500/60 mt-1">Goods + logistics in active shipments</p>
               </div>
             )}
             {s.exposure.allTimeValueLostKobo > 0 && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-xs">
+              <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] p-4 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[11px] text-red-700">Lost to ghosting</p>
-                  <Skull className="h-4 w-4 text-red-400" />
+                  <p className="text-[11px] text-red-400/70">Lost to ghosting</p>
+                  <Skull className="h-4 w-4 text-red-400/50" />
                 </div>
-                <p className="text-xl font-semibold text-red-900">{formatNaira(s.exposure.allTimeValueLostKobo)}</p>
-                <p className="text-[11px] text-red-600 mt-1">Goods + logistics never recovered</p>
+                <p className="text-xl font-semibold text-red-300">{formatNaira(s.exposure.allTimeValueLostKobo)}</p>
+                <p className="text-[11px] text-red-500/60 mt-1">Goods + logistics never recovered</p>
               </div>
             )}
           </div>
@@ -134,14 +134,14 @@ export default function DashboardHome() {
 
       {/* Quick links */}
       <div className="flex flex-wrap gap-2 pt-1">
-        <Link to="/dashboard/shipments" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 h-8 text-xs font-medium text-foreground hover:bg-secondary transition-colors shadow-xs">
-          <Package className="h-3.5 w-3.5" /> All shipments
+        <Link to="/dashboard/shipments" className="group inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] px-3.5 h-9 text-xs font-medium text-stone-400 hover:text-white transition-all">
+          <Package className="h-3.5 w-3.5" /> All shipments <ArrowRight className="h-3 w-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
         </Link>
-        <Link to="/dashboard/riders" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 h-8 text-xs font-medium text-foreground hover:bg-secondary transition-colors shadow-xs">
-          Manage riders
+        <Link to="/dashboard/riders" className="group inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] px-3.5 h-9 text-xs font-medium text-stone-400 hover:text-white transition-all">
+          Manage riders <ArrowRight className="h-3 w-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
         </Link>
-        <Link to="/dashboard/routes" className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 h-8 text-xs font-medium text-foreground hover:bg-secondary transition-colors shadow-xs">
-          Set up routes
+        <Link to="/dashboard/routes" className="group inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] px-3.5 h-9 text-xs font-medium text-stone-400 hover:text-white transition-all">
+          Set up routes <ArrowRight className="h-3 w-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
         </Link>
       </div>
     </div>
@@ -153,14 +153,14 @@ function StatCard({ label, value, icon, highlight, danger }: {
 }) {
   return (
     <div className={[
-      "rounded-lg border bg-white p-4 shadow-xs",
-      danger ? "border-red-200" : highlight ? "border-blue-200" : "border-border",
+      "rounded-xl border bg-white/[0.03] p-4 transition-colors",
+      danger ? "border-red-500/20" : highlight ? "border-blue-500/20" : "border-white/[0.06]",
     ].join(" ")}>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] text-muted-foreground">{label}</p>
+        <p className="text-[11px] text-stone-500">{label}</p>
         {icon}
       </div>
-      <p className={["text-xl font-semibold", danger ? "text-red-600" : "text-foreground"].join(" ")}>
+      <p className={["text-xl font-semibold", danger ? "text-red-400" : "text-white"].join(" ")}>
         {value}
       </p>
     </div>
@@ -170,9 +170,9 @@ function StatCard({ label, value, icon, highlight, danger }: {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 max-w-5xl animate-pulse">
-      <div className="h-28 rounded-lg bg-stone-100" />
-      <div className="grid grid-cols-3 gap-3">{[0,1,2].map(i=><div key={i} className="h-20 rounded-lg bg-stone-100"/>)}</div>
-      <div className="grid grid-cols-4 gap-3">{[0,1,2,3].map(i=><div key={i} className="h-20 rounded-lg bg-stone-100"/>)}</div>
+      <div className="h-28 rounded-xl bg-white/[0.03] border border-white/[0.06]" />
+      <div className="grid grid-cols-3 gap-3">{[0,1,2].map(i=><div key={i} className="h-20 rounded-xl bg-white/[0.03] border border-white/[0.06]"/>)}</div>
+      <div className="grid grid-cols-4 gap-3">{[0,1,2,3].map(i=><div key={i} className="h-20 rounded-xl bg-white/[0.03] border border-white/[0.06]"/>)}</div>
     </div>
   );
 }
