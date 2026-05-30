@@ -84,8 +84,13 @@ export default function ShipmentDetailPage() {
       publicWaybillApi.getChain(s.waybillId)
         .then(async (data: { chain: ChainEvent[] }) => {
           setWaybillChain(data.chain);
+          // Only sync status if there are real handovers beyond the
+          // initial claim event (ACTOR_SENDER → operator is synthetic)
+          const realHandovers = data.chain.filter(
+            (e) => e.giverActorType !== "ACTOR_SENDER"
+          );
           if (
-            data.chain.length > 0 &&
+            realHandovers.length > 0 &&
             ["pending", "in_transit"].includes(s.status)
           ) {
             try {
