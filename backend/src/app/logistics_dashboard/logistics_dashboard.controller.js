@@ -16,32 +16,33 @@ async function getGhostThresholdHours(userId) {
 router.use(localAuthMiddleware);
 
 // GET /api/logistics/dashboard/summary
-// Today's shipment counts + this-month run-level aggregates
+// Run-centric dashboard snapshot: today, this month, exposure, alert counts.
 router.get("/summary", asyncHandler(async (req, res) => {
   const userId = req.user.uid;
 
-  // Refresh run flags before reading
   const ghostThresholdHours = await getGhostThresholdHours(userId);
   await runsRepo.flagDelaysAndGhosting(userId, ghostThresholdHours);
 
-  const [today, monthRuns, monthValue, alerts, exposure] = await Promise.all([
-    // Shipment counts today still come from shipments — that's per-leg activity
+  const [today, month, exposure, alerts] = await Promise.all([
+    // Today: active runs, runs dispatched today, waybills awaiting dispatch
     query(
       `SELECT
-         COUNT(*) FILTER (WHERE status = 'pending') AS pending,
-         COUNT(*) FILTER (WHERE status = 'in_transit') AS in_transit,
-         COUNT(*) FILTER (WHERE status = 'delivered') AS delivered
-       FROM shipments
-       WHERE user_id = $1 AND created_at::date = NOW()::date`,
+         (SELECT COUNT(*) FROM dispatch_runs
+            WHERE user_id = $1 AND status IN ('loading','in_transit'))::int AS active_runs,
+         (SELECT COUNT(*) FROM dispatch_runs
+            WHERE user_id = $1 AND departed_at::date = NOW()::date)::int AS runs_dispatched,
+         (SELECT COUNT(*) FROM shipments
+            WHERE user_id = $1 AND run_id IS NULL AND status = 'pending')::int AS waybills_unassigned`,
       [userId]
     ),
-    // Run-level monthly snapshot: total cost + ghost rate
+    // Month: run-level aggregates
     query(
       `SELECT
-         COUNT(*) AS total_runs,
-         COUNT(*) FILTER (WHERE ghosting_flag = TRUE) AS ghosted_count,
-         COUNT(*) FILTER (WHERE status = 'completed') AS completed_count,
-         COALESCE(SUM(total_cost) FILTER (WHERE status != 'cancelled'), 0) AS total_cost_kobo,
+         COUNT(*)::int                                                              AS runs_dispatched,
+         COUNT(*) FILTER (WHERE status = 'completed')::int                          AS runs_completed,
+         COUNT(*) FILTER (WHERE ghosting_flag = TRUE)::int                          AS ghosted_count,
+         COALESCE(SUM(total_cost) FILTER (WHERE status != 'cancelled'), 0)::bigint  AS total_cost_kobo,
+         COALESCE(AVG(total_cost) FILTER (WHERE status != 'cancelled'), 0)::bigint  AS avg_cost_kobo,
          ROUND(
            COUNT(*) FILTER (WHERE ghosting_flag = TRUE)::numeric
            / NULLIF(COUNT(*), 0) * 100, 1
@@ -51,27 +52,7 @@ router.get("/summary", asyncHandler(async (req, res) => {
          AND date_trunc('month', created_at) = date_trunc('month', NOW())`,
       [userId]
     ),
-    // Value lost on ghosted runs (sum the shipments attached to those runs)
-    query(
-      `SELECT
-         COALESCE(SUM(s.shipment_value), 0) AS value_lost_kobo
-       FROM shipments s
-       JOIN dispatch_runs dr ON dr.id = s.run_id
-       WHERE dr.user_id = $1
-         AND dr.ghosting_flag = TRUE
-         AND date_trunc('month', dr.created_at) = date_trunc('month', NOW())`,
-      [userId]
-    ),
-    // Alerts: runs flagged as delayed or ghosting
-    query(
-      `SELECT COUNT(*) AS count
-       FROM dispatch_runs
-       WHERE user_id = $1
-         AND (delay_flag = TRUE OR ghosting_flag = TRUE)
-         AND status IN ('loading', 'in_transit')`,
-      [userId]
-    ),
-    // Value at risk: shipments attached to active (non-completed/cancelled) runs + run costs
+    // Exposure
     query(
       `SELECT
          COALESCE((
@@ -93,37 +74,50 @@ router.get("/summary", asyncHandler(async (req, res) => {
          ), 0) AS all_time_value_lost_kobo`,
       [userId]
     ),
+    // Alert counts (split by reason)
+    query(
+      `SELECT
+         COUNT(*) FILTER (WHERE delay_flag = TRUE)::int    AS delayed_count,
+         COUNT(*) FILTER (WHERE ghosting_flag = TRUE)::int AS ghosting_count
+       FROM dispatch_runs
+       WHERE user_id = $1 AND status IN ('loading','in_transit')`,
+      [userId]
+    ),
   ]);
 
   const t = today.rows[0];
-  const m = monthRuns.rows[0];
-  const mv = monthValue.rows[0];
+  const m = month.rows[0];
   const e = exposure.rows[0];
+  const a = alerts.rows[0];
 
   res.json({
     today: {
-      pending: parseInt(t.pending, 10),
-      inTransit: parseInt(t.in_transit, 10),
-      delivered: parseInt(t.delivered, 10),
+      activeRuns:         t.active_runs,
+      runsDispatched:     t.runs_dispatched,
+      waybillsUnassigned: t.waybills_unassigned,
     },
     month: {
-      totalShipments: parseInt(m.total_runs, 10),  // now = total runs
-      deliveredCount: parseInt(m.completed_count, 10),
-      ghostedCount: parseInt(m.ghosted_count, 10),
-      ghostRate: parseFloat(m.ghost_rate || "0"),
-      totalCostKobo: parseInt(m.total_cost_kobo, 10),
-      valueLostKobo: parseInt(mv.value_lost_kobo, 10),
+      runsDispatched:    m.runs_dispatched,
+      runsCompleted:     m.runs_completed,
+      ghostedCount:      m.ghosted_count,
+      ghostRate:         parseFloat(m.ghost_rate || "0"),
+      totalCostKobo:     parseInt(m.total_cost_kobo, 10),
+      avgCostPerRunKobo: parseInt(m.avg_cost_kobo, 10),
     },
     exposure: {
-      valueAtRiskKobo: parseInt(e.value_at_risk_kobo, 10),
+      valueAtRiskKobo:      parseInt(e.value_at_risk_kobo, 10),
       allTimeValueLostKobo: parseInt(e.all_time_value_lost_kobo, 10),
     },
-    alertCount: parseInt(alerts.rows[0].count, 10),
+    alerts: {
+      delayedCount:  a.delayed_count,
+      ghostingCount: a.ghosting_count,
+      total:         a.delayed_count + a.ghosting_count,
+    },
   });
 }));
 
 // GET /api/logistics/dashboard/alerts
-// Runs flagged as delayed or ghosting
+// Runs flagged as delayed or ghosting (active runs only).
 router.get("/alerts", asyncHandler(async (req, res) => {
   const userId = req.user.uid;
 
@@ -158,8 +152,49 @@ router.get("/alerts", asyncHandler(async (req, res) => {
   })));
 }));
 
+// GET /api/logistics/dashboard/top-riders
+// Top 5 riders this month by run cost, with ghost rate.
+router.get("/top-riders", asyncHandler(async (req, res) => {
+  const userId = req.user.uid;
+
+  const result = await query(
+    `SELECT
+       r.id   AS rider_id,
+       r.name AS rider_name,
+       r.vehicle_type,
+       COUNT(dr.id)::int AS runs_total,
+       COUNT(dr.id) FILTER (WHERE dr.status = 'completed')::int AS runs_completed,
+       COALESCE(SUM(dr.total_cost), 0)::bigint AS total_cost_kobo,
+       ROUND(
+         COUNT(dr.id) FILTER (WHERE dr.ghosting_flag = TRUE OR dr.status = 'cancelled')::numeric
+         / NULLIF(COUNT(dr.id), 0) * 100, 1
+       ) AS ghost_rate
+     FROM riders r
+     LEFT JOIN dispatch_runs dr
+       ON dr.rider_id = r.id
+       AND dr.user_id = $1
+       AND date_trunc('month', dr.created_at) = date_trunc('month', NOW())
+     WHERE r.user_id = $1 AND r.is_active = TRUE
+     GROUP BY r.id, r.name, r.vehicle_type
+     HAVING COUNT(dr.id) > 0
+     ORDER BY runs_total DESC, total_cost_kobo DESC
+     LIMIT 5`,
+    [userId]
+  );
+
+  res.json(result.rows.map((r) => ({
+    riderId:        r.rider_id,
+    riderName:      r.rider_name,
+    vehicleType:    r.vehicle_type,
+    runsTotal:      r.runs_total,
+    runsCompleted:  r.runs_completed,
+    totalCostKobo:  parseInt(r.total_cost_kobo, 10),
+    ghostRate:      parseFloat(r.ghost_rate || "0"),
+  })));
+}));
+
 // GET /api/logistics/dashboard/costs
-// Run-level cost breakdown by month and by rider
+// Run-level cost breakdown by month and by rider (existing, kept for /reports later).
 router.get("/costs", asyncHandler(async (req, res) => {
   const userId = req.user.uid;
 

@@ -73,10 +73,46 @@ export interface StatusLogEntry {
 }
 
 export interface DashboardSummary {
-  today: { pending: number; inTransit: number; delivered: number };
-  month: { totalShipments: number; deliveredCount: number; ghostedCount: number; ghostRate: number; totalCostKobo: number; valueLostKobo: number };
+  today: {
+    activeRuns: number;
+    runsDispatched: number;
+    waybillsUnassigned: number;
+  };
+  month: {
+    runsDispatched: number;
+    runsCompleted: number;
+    ghostedCount: number;
+    ghostRate: number;
+    totalCostKobo: number;
+    avgCostPerRunKobo: number;
+  };
   exposure: { valueAtRiskKobo: number; allTimeValueLostKobo: number };
-  alertCount: number;
+  alerts: { delayedCount: number; ghostingCount: number; total: number };
+}
+
+export interface RunAlert {
+  id: string;
+  name: string | null;
+  riderName: string | null;
+  status: string;
+  legCount: number;
+  distanceKm: number;
+  totalCost: number;
+  delayFlag: boolean;
+  ghostingFlag: boolean;
+  expectedDeliveryDate: string | null;
+  lastStatusUpdateAt: string | null;
+  createdAt: string;
+}
+
+export interface TopRider {
+  riderId: string;
+  riderName: string;
+  vehicleType: string;
+  runsTotal: number;
+  runsCompleted: number;
+  totalCostKobo: number;
+  ghostRate: number;
 }
 
 export interface LogisticsSettings {
@@ -128,9 +164,10 @@ export const shipmentsApi = {
 // ── Dashboard ─────────────────────────────────────────────────────────────
 
 export const dashboardApi = {
-  summary: () => apiClient.get<DashboardSummary>("/api/logistics/dashboard/summary").then((r) => r.data),
-  alerts: () => apiClient.get<Shipment[]>("/api/logistics/dashboard/alerts").then((r) => r.data),
-  costs: () => apiClient.get("/api/logistics/dashboard/costs").then((r) => r.data),
+  summary:    () => apiClient.get<DashboardSummary>("/api/logistics/dashboard/summary").then((r) => r.data),
+  alerts:     () => apiClient.get<RunAlert[]>("/api/logistics/dashboard/alerts").then((r) => r.data),
+  topRiders:  () => apiClient.get<TopRider[]>("/api/logistics/dashboard/top-riders").then((r) => r.data),
+  costs:      () => apiClient.get("/api/logistics/dashboard/costs").then((r) => r.data),
 };
 
 // ── Settings ──────────────────────────────────────────────────────────────
