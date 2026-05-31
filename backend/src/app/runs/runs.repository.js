@@ -44,7 +44,7 @@ async function create({ userId, name, riderId, notes }) {
      VALUES ($1, $2, $3, $4) RETURNING *`,
     [userId, name || null, riderId || null, notes || null]
   );
-  return mapRun(result.rows[0]);
+  return getById(result.rows[0].id, userId);
 }
 
 async function listByUser(userId) {
@@ -150,16 +150,13 @@ async function removeLeg(runId, shipmentId, userId) {
 }
 
 async function updateStatus(runId, userId, status) {
-  let run;
-
   if (status === "in_transit") {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, departed_at=NOW(), updated_at=NOW()
-       WHERE id=$2 AND user_id=$3 RETURNING *`,
+       WHERE id=$2 AND user_id=$3 RETURNING id`,
       [status, runId, userId]
     );
-    run = mapRun(r.rows[0]);
-    // Sync all shipments in this run to in_transit
+    if (!r.rows[0]) return null;
     await query(
       `UPDATE shipments SET status = 'in_transit', updated_at = NOW()
        WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted')`,
@@ -168,11 +165,10 @@ async function updateStatus(runId, userId, status) {
   } else if (status === "completed") {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, completed_at=NOW(), updated_at=NOW()
-       WHERE id=$2 AND user_id=$3 RETURNING *`,
+       WHERE id=$2 AND user_id=$3 RETURNING id`,
       [status, runId, userId]
     );
-    run = mapRun(r.rows[0]);
-    // Sync all shipments to delivered
+    if (!r.rows[0]) return null;
     await query(
       `UPDATE shipments SET status = 'delivered', updated_at = NOW()
        WHERE run_id = $1 AND status NOT IN ('failed','ghosted')`,
@@ -181,11 +177,10 @@ async function updateStatus(runId, userId, status) {
   } else if (status === "cancelled") {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, updated_at=NOW()
-       WHERE id=$2 AND user_id=$3 RETURNING *`,
+       WHERE id=$2 AND user_id=$3 RETURNING id`,
       [status, runId, userId]
     );
-    run = mapRun(r.rows[0]);
-    // Release shipments back to unassigned + pending so they can be re-run
+    if (!r.rows[0]) return null;
     await query(
       `UPDATE shipments SET status = 'pending', run_id = NULL, updated_at = NOW()
        WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted')`,
@@ -194,22 +189,36 @@ async function updateStatus(runId, userId, status) {
   } else {
     const r = await query(
       `UPDATE dispatch_runs SET status=$1, updated_at=NOW()
-       WHERE id=$2 AND user_id=$3 RETURNING *`,
+       WHERE id=$2 AND user_id=$3 RETURNING id`,
       [status, runId, userId]
     );
-    run = mapRun(r.rows[0]);
+    if (!r.rows[0]) return null;
   }
 
-  return run;
+  return getById(runId, userId);
 }
 
-async function update(runId, userId, { name, riderId, notes }) {
+async function update(runId, userId, fields) {
+  const sets = [];
+  const vals = [];
+  let idx = 1;
+
+  if ("name" in fields)    { sets.push(`name = $${idx++}`);     vals.push(fields.name || null); }
+  if ("riderId" in fields) { sets.push(`rider_id = $${idx++}`); vals.push(fields.riderId || null); }
+  if ("notes" in fields)   { sets.push(`notes = $${idx++}`);    vals.push(fields.notes || null); }
+
+  if (sets.length === 0) return getById(runId, userId);
+
+  sets.push("updated_at = NOW()");
+  vals.push(runId, userId);
+
   const r = await query(
-    `UPDATE dispatch_runs SET name=$1, rider_id=$2, notes=$3, updated_at=NOW()
-     WHERE id=$4 AND user_id=$5 RETURNING *`,
-    [name || null, riderId || null, notes || null, runId, userId]
+    `UPDATE dispatch_runs SET ${sets.join(", ")}
+     WHERE id = $${idx++} AND user_id = $${idx++} RETURNING id`,
+    vals
   );
-  return mapRun(r.rows[0]);
+  if (!r.rows[0]) return null;
+  return getById(runId, userId);
 }
 
 module.exports = { create, listByUser, getById, addLeg, removeLeg, updateStatus, update };
