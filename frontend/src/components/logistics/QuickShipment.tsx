@@ -82,14 +82,14 @@ export function QuickShipment({ onDone }: Props) {
     }
   }
 
-  const inputCls = "w-full rounded-md border border-input bg-white px-3 h-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+  const inputCls = "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 h-9 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500/40 transition-colors";
 
   return (
     <>
       {/* FAB */}
       <button
         onClick={() => openModal("claim")}
-        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 h-11 text-sm font-semibold text-white shadow-lg hover:bg-primary/90 transition-colors"
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-orange-500 to-orange-600 px-4 h-11 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-[1.02] transition-all"
       >
         <PackagePlus className="h-4 w-4" />
         Quick Shipment
@@ -98,29 +98,29 @@ export function QuickShipment({ onDone }: Props) {
       {/* Modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={close} />
-          <div className="relative w-full max-w-md rounded-xl bg-white shadow-2xl border border-border overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[70vh]">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
+          <div className="relative w-full max-w-md rounded-xl bg-[#0c1522] shadow-2xl shadow-black/40 border border-white/[0.08] overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[70vh]">
 
             {/* Tab header */}
-            <div className="border-b border-border">
+            <div className="border-b border-white/[0.06]">
               <div className="flex items-center justify-between px-4 pt-3 pb-0">
                 <div className="flex gap-1">
                   <button
                     onClick={() => setTab("claim")}
                     className={["flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors",
-                      tab === "claim" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"].join(" ")}
+                      tab === "claim" ? "border-orange-500 text-orange-400" : "border-transparent text-stone-500 hover:text-stone-300"].join(" ")}
                   >
                     <FileText className="h-3.5 w-3.5" /> Claim Waybill
                   </button>
                   <button
                     onClick={() => setTab("join")}
                     className={["flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors",
-                      tab === "join" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"].join(" ")}
+                      tab === "join" ? "border-orange-500 text-orange-400" : "border-transparent text-stone-500 hover:text-stone-300"].join(" ")}
                   >
                     <Link2 className="h-3.5 w-3.5" /> Join Leg
                   </button>
                 </div>
-                <button onClick={close} className="text-muted-foreground hover:text-foreground mb-2">
+                <button onClick={close} className="text-stone-600 hover:text-stone-300 mb-2 transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -132,25 +132,25 @@ export function QuickShipment({ onDone }: Props) {
                 <div className="p-5 overflow-y-auto">
                   {claimedShipmentId ? (
                     <div className="py-6 flex flex-col items-center text-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      <div className="h-12 w-12 rounded-full bg-emerald-500/[0.15] flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Waybill claimed</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <span className="font-mono">{claimedWaybillNumber}</span> is on your dashboard. Assign it to a run when you're ready to dispatch.
+                        <p className="text-sm font-semibold text-white">Waybill claimed</p>
+                        <p className="text-xs text-stone-500 mt-1">
+                          <span className="font-mono text-stone-400">{claimedWaybillNumber}</span> is on your dashboard. Assign it to a run when you're ready to dispatch.
                         </p>
                       </div>
                       <div className="flex flex-col gap-2 w-full">
                         <button
                           onClick={() => { close(); navigate(`/dashboard/shipments/${claimedShipmentId}`); }}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-white px-4 h-9 text-xs font-semibold hover:bg-primary/90"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 text-white px-4 h-9 text-xs font-semibold shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 transition-all"
                         >
                           Open shipment <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => { setClaimedShipmentId(null); setClaimNumber(""); setClaimToken(""); setClaimError(""); }}
-                          className="text-xs text-muted-foreground underline underline-offset-2"
+                          className="text-xs text-stone-500 underline underline-offset-2 hover:text-stone-300 transition-colors"
                         >
                           Claim another
                         </button>
@@ -158,11 +158,11 @@ export function QuickShipment({ onDone }: Props) {
                     </div>
                   ) : (
                     <form id="claim-form" onSubmit={handleClaim} className="space-y-4">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-stone-500">
                         Enter the waybill number and the 8-character claim code from the physical stub. A shipment will be created on your dashboard automatically.
                       </p>
                       <div>
-                        <label className="block text-xs font-medium text-foreground mb-1.5">Waybill number</label>
+                        <label className="block text-xs font-medium text-stone-300 mb-1.5">Waybill number</label>
                         <input
                           required
                           value={claimNumber}
@@ -172,7 +172,7 @@ export function QuickShipment({ onDone }: Props) {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-foreground mb-1.5">Claim code</label>
+                        <label className="block text-xs font-medium text-stone-300 mb-1.5">Claim code</label>
                         <input
                           required
                           value={claimToken}
@@ -181,10 +181,10 @@ export function QuickShipment({ onDone }: Props) {
                           maxLength={8}
                           className={`${inputCls} font-mono tracking-widest`}
                         />
-                        <p className="text-[10px] text-muted-foreground mt-1">Printed on the tear-off stub at the bottom of the waybill PDF.</p>
+                        <p className="text-[10px] text-stone-600 mt-1">Printed on the tear-off stub at the bottom of the waybill PDF.</p>
                       </div>
                       {claimError && (
-                        <p className="flex items-center gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                        <p className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/[0.1] border border-red-500/20 rounded-lg px-3 py-2">
                           <AlertCircle className="h-3.5 w-3.5 shrink-0" />{claimError}
                         </p>
                       )}
@@ -192,14 +192,14 @@ export function QuickShipment({ onDone }: Props) {
                   )}
                 </div>
                 {!claimedShipmentId && (
-                  <div className="px-5 py-3 border-t border-border bg-white shrink-0">
+                  <div className="px-5 py-3 border-t border-white/[0.06] shrink-0">
                     <button
                       type="submit"
                       form="claim-form"
                       disabled={claimWorking || !claimNumber || !claimToken}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary h-9 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 h-9 text-xs font-semibold text-white shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 disabled:opacity-60 transition-all"
                     >
-                      {claimWorking ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Claiming…</> : "Claim waybill →"}
+                      {claimWorking ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Claiming...</> : "Claim waybill →"}
                     </button>
                   </div>
                 )}
@@ -212,25 +212,25 @@ export function QuickShipment({ onDone }: Props) {
                 <div className="p-5 overflow-y-auto">
                   {joinedShipmentId ? (
                     <div className="py-6 flex flex-col items-center text-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      <div className="h-12 w-12 rounded-full bg-emerald-500/[0.15] flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Leg joined</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm font-semibold text-white">Leg joined</p>
+                        <p className="text-xs text-stone-500 mt-1">
                           Your shipment for this leg is ready. Initiate the first handover from the shipment page.
                         </p>
                       </div>
                       <div className="flex flex-col gap-2 w-full">
                         <button
                           onClick={() => { close(); navigate(`/dashboard/shipments/${joinedShipmentId}`); }}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-white px-4 h-9 text-xs font-semibold hover:bg-primary/90"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 text-white px-4 h-9 text-xs font-semibold shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 transition-all"
                         >
                           Open shipment <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => { setJoinedShipmentId(null); setJoinWaybillNumber(""); setJoinProofHash(""); setJoinError(""); }}
-                          className="text-xs text-muted-foreground underline underline-offset-2"
+                          className="text-xs text-stone-500 underline underline-offset-2 hover:text-stone-300 transition-colors"
                         >
                           Join another
                         </button>
@@ -238,11 +238,11 @@ export function QuickShipment({ onDone }: Props) {
                     </div>
                   ) : (
                     <form id="join-form" onSubmit={handleJoin} className="space-y-4">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-stone-500">
                         You received goods from another operator. Enter the waybill number and the proof hash shown when the sender confirmed handover to you.
                       </p>
                       <div>
-                        <label className="block text-xs font-medium text-foreground mb-1.5">Waybill number</label>
+                        <label className="block text-xs font-medium text-stone-300 mb-1.5">Waybill number</label>
                         <input
                           required
                           value={joinWaybillNumber}
@@ -252,7 +252,7 @@ export function QuickShipment({ onDone }: Props) {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-foreground mb-1.5">Proof of Handover hash</label>
+                        <label className="block text-xs font-medium text-stone-300 mb-1.5">Proof of Handover hash</label>
                         <input
                           required
                           value={joinProofHash}
@@ -260,12 +260,12 @@ export function QuickShipment({ onDone }: Props) {
                           placeholder="64-character hex hash"
                           className={`${inputCls} font-mono text-xs`}
                         />
-                        <p className="text-[10px] text-muted-foreground mt-1">
+                        <p className="text-[10px] text-stone-600 mt-1">
                           Shown on the scan page after the driver confirmed receipt.
                         </p>
                       </div>
                       {joinError && (
-                        <p className="flex items-center gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                        <p className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/[0.1] border border-red-500/20 rounded-lg px-3 py-2">
                           <AlertCircle className="h-3.5 w-3.5 shrink-0" />{joinError}
                         </p>
                       )}
@@ -273,14 +273,14 @@ export function QuickShipment({ onDone }: Props) {
                   )}
                 </div>
                 {!joinedShipmentId && (
-                  <div className="px-5 py-3 border-t border-border bg-white shrink-0">
+                  <div className="px-5 py-3 border-t border-white/[0.06] shrink-0">
                     <button
                       type="submit"
                       form="join-form"
                       disabled={joinWorking || !joinWaybillNumber || !joinProofHash}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary h-9 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 h-9 text-xs font-semibold text-white shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 disabled:opacity-60 transition-all"
                     >
-                      {joinWorking ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Joining…</> : "Join leg →"}
+                      {joinWorking ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Joining...</> : "Join leg →"}
                     </button>
                   </div>
                 )}

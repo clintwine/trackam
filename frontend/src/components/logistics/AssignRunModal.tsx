@@ -74,16 +74,16 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40">
-      <div className="relative w-full sm:max-w-sm rounded-t-xl sm:rounded-xl border border-border bg-white shadow-xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="relative w-full sm:max-w-sm rounded-t-xl sm:rounded-xl border border-white/[0.08] bg-[#0c1522] shadow-2xl shadow-black/40 overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-white/[0.06]">
           <div>
-            <p className="text-sm font-semibold text-foreground">Assign to a run</p>
-            <p className="text-[11px] font-mono text-muted-foreground mt-0.5">{waybillNumber}</p>
+            <p className="text-sm font-semibold text-white">Assign to a run</p>
+            <p className="text-[11px] font-mono text-stone-500 mt-0.5">{waybillNumber}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5">
+          <button onClick={onClose} className="text-stone-600 hover:text-stone-300 transition-colors mt-0.5">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -94,30 +94,30 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
             <>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-4 w-4 animate-spin text-stone-600" />
                 </div>
               ) : runs.length > 0 ? (
                 <>
-                  <p className="text-xs text-muted-foreground">Add to a run currently loading at dock:</p>
+                  <p className="text-xs text-stone-500">Add to a run currently loading at dock:</p>
                   <div className="space-y-2 max-h-52 overflow-y-auto -mx-1 px-1">
                     {runs.map((run) => (
                       <button
                         key={run.id}
                         onClick={() => handleAddToRun(run.id)}
                         disabled={working}
-                        className="w-full flex items-center gap-3 rounded-lg border border-border bg-stone-50 px-3 py-2.5 text-left hover:bg-orange-50 hover:border-orange-200 transition-colors disabled:opacity-60 group"
+                        className="w-full flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-left hover:bg-orange-500/[0.06] hover:border-orange-500/20 transition-all disabled:opacity-60 group"
                       >
                         {/* Icon */}
-                        <div className="h-8 w-8 rounded-md bg-amber-100 flex items-center justify-center shrink-0">
-                          <Truck className="h-3.5 w-3.5 text-amber-600" />
+                        <div className="h-8 w-8 rounded-lg bg-amber-500/[0.12] flex items-center justify-center shrink-0">
+                          <Truck className="h-3.5 w-3.5 text-amber-400" />
                         </div>
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-foreground truncate">
+                          <p className="text-xs font-medium text-stone-200 truncate">
                             {run.name || `Run — ${new Date(run.createdAt).toLocaleDateString("en-NG", { day: "2-digit", month: "short" })}`}
                           </p>
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <p className="text-[11px] text-stone-500 flex items-center gap-1.5 mt-0.5">
                             {run.riderName && (
                               <>
                                 <User className="h-2.5 w-2.5 shrink-0" />
@@ -129,24 +129,24 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
                           </p>
                         </div>
 
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 group-hover:text-orange-600 transition-colors" />
+                        <ChevronRight className="h-3.5 w-3.5 text-stone-600 shrink-0 group-hover:text-orange-400 transition-colors" />
                       </button>
                     ))}
                   </div>
 
                   <div className="relative flex items-center gap-2 py-1">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">or</span>
-                    <div className="flex-1 h-px bg-border" />
+                    <div className="flex-1 h-px bg-white/[0.06]" />
+                    <span className="text-[10px] text-stone-600 uppercase tracking-wide">or</span>
+                    <div className="flex-1 h-px bg-white/[0.06]" />
                   </div>
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground pb-1">No runs currently loading at dock.</p>
+                <p className="text-xs text-stone-500 pb-1">No runs currently loading at dock.</p>
               )}
 
               <button
                 onClick={() => setView("new")}
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-orange-300 bg-orange-50 text-orange-700 h-9 text-xs font-medium hover:bg-orange-100 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-orange-500/30 bg-orange-500/[0.06] text-orange-400 h-9 text-xs font-medium hover:bg-orange-500/[0.1] transition-all"
               >
                 <Plus className="h-3.5 w-3.5" /> Start a new dispatch run
               </button>
@@ -156,32 +156,32 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
           {/* ── Create new run ────────────────────────────────────── */}
           {view === "new" && (
             <>
-              <p className="text-xs text-muted-foreground">Set up a new run, then add this waybill to it:</p>
+              <p className="text-xs text-stone-500">Set up a new run, then add this waybill to it:</p>
 
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1.5">Run name <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <label className="block text-[11px] font-medium text-stone-300 mb-1.5">Run name <span className="text-stone-600 font-normal">(optional)</span></label>
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Morning Lagos run"
-                  className="w-full rounded-md border border-input bg-white px-3 h-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 h-9 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500/40 transition-colors"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1.5">
-                  Rider <span className="text-red-500">*</span>
+                <label className="block text-[11px] font-medium text-stone-300 mb-1.5">
+                  Rider <span className="text-red-400">*</span>
                 </label>
                 <select
                   value={newRiderId}
                   onChange={(e) => setNewRiderId(e.target.value)}
                   required
-                  className="w-full rounded-md border border-input bg-white px-3 h-9 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 h-9 text-sm text-white focus:outline-none focus:border-orange-500/40 transition-colors"
                 >
-                  <option value="">Select a rider…</option>
+                  <option value="" className="bg-[#0c1522] text-stone-500">Select a rider...</option>
                   {riders.map((r) => (
-                    <option key={r.id} value={r.id}>
+                    <option key={r.id} value={r.id} className="bg-[#0c1522] text-white">
                       {r.name} · {r.vehicleType}
                     </option>
                   ))}
@@ -192,7 +192,7 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
                 <button
                   onClick={handleCreateRun}
                   disabled={working}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-orange-600 text-white h-9 text-xs font-semibold hover:bg-orange-700 transition-colors disabled:opacity-60"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 text-white h-9 text-xs font-semibold shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 transition-all disabled:opacity-60"
                 >
                   {working
                     ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -201,7 +201,7 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
                 </button>
                 <button
                   onClick={() => { setView("choose"); setError(""); }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2"
+                  className="text-xs text-stone-500 hover:text-stone-300 transition-colors px-2"
                 >
                   Back
                 </button>
@@ -210,7 +210,7 @@ export default function AssignRunModal({ shipmentId, waybillNumber, onClose }: P
           )}
 
           {error && (
-            <p className="flex items-center gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <p className="flex items-center gap-1.5 text-[11px] text-red-400 bg-red-500/[0.1] border border-red-500/20 rounded-lg px-3 py-2">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
             </p>
           )}
