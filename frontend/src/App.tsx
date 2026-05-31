@@ -16,6 +16,7 @@ import DashboardHome from "@/pages/user/DashboardHome";
 import AccountPage from "@/pages/user/AccountPage";
 import NotificationsPage from "@/pages/user/NotificationsPage";
 import SecurityPage from "@/pages/user/SecurityPage";
+import WalletTransactionsPage from "@/pages/user/WalletTransactionsPage";
 import AdminDashboardLayout from "@/pages/admin/AdminDashboardLayout";
 import AdminOverview from "@/pages/admin/AdminOverview";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
       { path: "account", element: <AccountPage /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "security", element: <SecurityPage /> },
+      { path: "wallet/transactions", element: <WalletTransactionsPage /> },
     ],
   },
   {

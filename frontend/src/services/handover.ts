@@ -293,6 +293,14 @@ export interface WalletData {
   updated_at: string;
 }
 
+export interface TopupInit {
+  authorization_url: string;
+  access_code?: string;
+  reference: string;
+}
+
 export const walletApi = {
   get: () => apiClient.get<{ wallet: WalletData }>("/api/wallet").then((r) => r.data.wallet),
+  topup: (amountNgn: number) =>
+    apiClient.post<TopupInit>("/api/wallet/topup", { amount: amountNgn }).then((r) => r.data),
 };

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
-import { Wallet, RefreshCw } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { walletApi, type WalletData } from "@/services/handover";
 import { formatNairaRaw } from "@/lib/format";
+import { WalletModal } from "./WalletModal";
 
 /** Dispatch this event from anywhere to make the wallet re-fetch. */
 export const WALLET_REFRESH_EVENT = "trackam:wallet-refresh";
@@ -15,6 +16,7 @@ export default function WalletWidget() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -48,7 +50,7 @@ export default function WalletWidget() {
     );
   }
 
-  // No wallet data — show faded placeholder
+  // No wallet data — show faded placeholder (not clickable)
   if (unavailable || !wallet) {
     return (
       <div
@@ -62,19 +64,28 @@ export default function WalletWidget() {
   }
 
   return (
-    <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] px-2.5 h-8" title="OLI Switch wallet balance">
-      <Wallet className="h-3.5 w-3.5 text-orange-400/70 shrink-0" />
-      <span className="text-xs font-medium text-stone-300 tabular-nums">
-        {formatNairaRaw(wallet.balance)}
-      </span>
+    <>
       <button
-        onClick={() => load(true)}
-        disabled={refreshing}
-        className="text-stone-600 hover:text-stone-300 transition-colors disabled:opacity-40 ml-0.5"
-        aria-label="Refresh wallet balance"
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] hover:border-orange-500/20 px-2.5 h-8 transition-colors group"
+        aria-label="Open wallet"
+        title="Open wallet"
       >
-        <RefreshCw className={["h-3 w-3", refreshing ? "animate-spin" : ""].join(" ")} />
+        <Wallet className="h-3.5 w-3.5 text-orange-400/70 shrink-0 group-hover:text-orange-400 transition-colors" />
+        <span className="text-xs font-medium text-stone-300 tabular-nums group-hover:text-white transition-colors">
+          {formatNairaRaw(wallet.balance)}
+        </span>
       </button>
-    </div>
+
+      {open && (
+        <WalletModal
+          wallet={wallet}
+          onClose={() => setOpen(false)}
+          onRefresh={() => load(true)}
+          refreshing={refreshing}
+        />
+      )}
+    </>
   );
 }
