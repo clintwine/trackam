@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight, Layers } from "lucide-react";
+import { MapPin, Package, Loader2, CheckCircle2, ShieldCheck, ArrowRight, Layers, AlertCircle } from "lucide-react";
 import {
   publicHandoverApi, publicBatchApi,
   ACTOR_LABELS, type ActorType, type TokenInfo, type HandoverConfirmation,
@@ -23,7 +23,8 @@ export default function ScanPage() {
   const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
   const [batchInfo, setBatchInfo] = useState<BatchTokenInfo | null>(null);
   const [confirmation, setConfirmation] = useState<HandoverConfirmation | BulkHandoverConfirmed | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState("");          // fatal — invalid/expired link
+  const [confirmError, setConfirmError] = useState(""); // inline — fixable validation errors
 
   // Shared form state
   const [receiverName, setReceiverName] = useState("");
@@ -89,6 +90,7 @@ export default function ScanPage() {
     e.preventDefault();
     if (!token) return;
     if (needsBypass && bypassReason.trim().length < 10) return;
+    setConfirmError("");
     setPhase("submitting");
     try {
       const result = await publicHandoverApi.confirm({
@@ -110,8 +112,8 @@ export default function ScanPage() {
         return;
       }
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Handover failed. Please try again.";
-      setError(msg);
-      setPhase("error");
+      setConfirmError(msg);
+      setPhase("token-form");
     }
   }
 
@@ -119,6 +121,7 @@ export default function ScanPage() {
     e.preventDefault();
     if (!token) return;
     if (needsBypass && bypassReason.trim().length < 10) return;
+    setConfirmError("");
     setPhase("submitting");
     try {
       const result = await publicBatchApi.confirm({
@@ -140,8 +143,8 @@ export default function ScanPage() {
         return;
       }
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Handover failed. Please try again.";
-      setError(msg);
-      setPhase("error");
+      setConfirmError(msg);
+      setPhase("batch-form");
     }
   }
 
@@ -200,6 +203,13 @@ export default function ScanPage() {
 
             {needsBypass && <BypassReasonField value={bypassReason} onChange={setBypassReason} />}
 
+            {confirmError && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
+                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{confirmError}</p>
+              </div>
+            )}
+
             <button type="submit" disabled={needsBypass && bypassReason.trim().length < 10} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50">
               <ShieldCheck className="h-4 w-4" /> Confirm handover
             </button>
@@ -252,6 +262,13 @@ export default function ScanPage() {
             />
 
             {needsBypass && <BypassReasonField value={bypassReason} onChange={setBypassReason} />}
+
+            {confirmError && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
+                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{confirmError}</p>
+              </div>
+            )}
 
             <button type="submit" disabled={needsBypass && bypassReason.trim().length < 10} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50">
               <ShieldCheck className="h-4 w-4" /> Confirm receipt of all {batchInfo.shipments.length} shipments
