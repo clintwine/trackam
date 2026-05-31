@@ -74,3 +74,28 @@ export const COUNTRY_OPTIONS = [
 export function getIdSchemeConfig(country: string): IdSchemeConfig {
   return ID_SCHEME_CONFIGS[country] ?? ID_SCHEME_CONFIGS["ng"];
 }
+
+// ── Phone country codes ─────────────────────────────────────────────────────
+
+export interface CountryPhoneConfig {
+  code:        string; // ISO alpha-2 (lowercase)
+  name:        string;
+  flag:        string; // emoji
+  dialCode:    string; // e.g. "+234"
+  /** Length of the national subscriber number, excluding leading 0 if any. */
+  nationalLength: number;
+  /** Some countries use a leading "0" trunk prefix in local format (e.g. NG). */
+  trunkPrefix: string;
+}
+
+export const COUNTRY_PHONE_CONFIGS: Record<string, CountryPhoneConfig> = {
+  ng: { code: "ng", name: "Nigeria",      flag: "🇳🇬", dialCode: "+234", nationalLength: 10, trunkPrefix: "0" },
+  gh: { code: "gh", name: "Ghana",        flag: "🇬🇭", dialCode: "+233", nationalLength: 9,  trunkPrefix: "0" },
+  ke: { code: "ke", name: "Kenya",        flag: "🇰🇪", dialCode: "+254", nationalLength: 9,  trunkPrefix: "0" },
+  za: { code: "za", name: "South Africa", flag: "🇿🇦", dialCode: "+27",  nationalLength: 9,  trunkPrefix: "0" },
+  rw: { code: "rw", name: "Rwanda",       flag: "🇷🇼", dialCode: "+250", nationalLength: 9,  trunkPrefix: "0" },
+};
+
+export function getCountryPhoneConfig(country: string): CountryPhoneConfig {
+  return COUNTRY_PHONE_CONFIGS[country] ?? COUNTRY_PHONE_CONFIGS["ng"];
+}

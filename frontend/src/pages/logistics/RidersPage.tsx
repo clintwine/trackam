@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Users, X, Loader2 } from "lucide-react";
+import { Plus, Users, X, Loader2, AlertCircle } from "lucide-react";
 import { ridersApi, type Rider, type VehicleType } from "@/services/logistics";
 import { formatNaira } from "@/lib/format";
+import { PhoneInput } from "@/components/PhoneInput";
 
 const VEHICLE_LABELS: Record<VehicleType, string> = {
   bike: "Bike", tricycle: "Tricycle", van: "Van", truck: "Truck",
@@ -123,7 +124,6 @@ function AddRiderModal({ onClose, onCreated }: { onClose: () => void; onCreated:
 
         {[
           { label: "Full name", key: "name" as const, placeholder: "e.g. Ibrahim Musa", type: "text" },
-          { label: "Phone", key: "phone" as const, placeholder: "e.g. 08012345678", type: "tel" },
           { label: "City coverage", key: "cityCoverage" as const, placeholder: "e.g. Lagos, Onitsha", type: "text" },
           { label: "Base fee (₦)", key: "baseFee" as const, placeholder: "e.g. 45000", type: "number" },
         ].map(({ label, key, placeholder, type }) => (
@@ -138,6 +138,16 @@ function AddRiderModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             />
           </div>
         ))}
+
+        <div>
+          <label className="block text-xs font-medium text-stone-300 mb-1">Phone</label>
+          <PhoneInput
+            value={form.phone}
+            onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+            placeholder="8012345678"
+            required
+          />
+        </div>
 
         <div>
           <label className="block text-xs font-medium text-stone-300 mb-1">Vehicle type</label>
