@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download, ArrowRight, Loader2, CheckCircle2, Copy, ExternalLink } from "lucide-react";
 import { publicWaybillApi } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
+import { PhoneInput } from "@/components/PhoneInput";
 
 type Phase = "form" | "submitting" | "done";
 
@@ -159,7 +160,12 @@ export default function WaybillGeneratorPage() {
                 </div>
                 <div>
                   <label className={labelCls}>Phone <span className="text-red-500">*</span></label>
-                  <input required {...field("senderPhone")} placeholder="+234 800 000 0000" inputMode="tel" className={inputCls} />
+                  <PhoneInput
+                    value={form.senderPhone}
+                    onChange={(v) => setForm((prev) => ({ ...prev, senderPhone: v }))}
+                    required
+                    size="md"
+                  />
                 </div>
               </div>
               <div>
@@ -178,7 +184,12 @@ export default function WaybillGeneratorPage() {
                 </div>
                 <div>
                   <label className={labelCls}>Phone <span className="text-red-500">*</span></label>
-                  <input required {...field("receiverPhone")} placeholder="+234 800..." inputMode="tel" className={inputCls} />
+                  <PhoneInput
+                    value={form.receiverPhone}
+                    onChange={(v) => setForm((prev) => ({ ...prev, receiverPhone: v }))}
+                    required
+                    size="md"
+                  />
                 </div>
               </div>
               <div>

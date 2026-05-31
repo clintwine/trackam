@@ -9,6 +9,7 @@ import {
 import { PublicNav } from "@/components/layout/PublicNav";
 import { IdVerificationInput } from "@/components/id-verification/IdVerificationInput";
 import { getIdSchemeConfig } from "@/lib/idSchemes";
+import { PhoneInput } from "@/components/PhoneInput";
 
 type Phase = "loading" | "token-form" | "batch-form" | "submitting" | "success" | "error";
 
@@ -378,12 +379,11 @@ function ReceiverFields({
 
       <div>
         <label className="text-xs font-medium text-white block mb-1.5">Phone number <span className="text-stone-400">(optional)</span></label>
-        <input
+        <PhoneInput
           value={receiverPhone}
-          onChange={(e) => setReceiverPhone(e.target.value)}
-          placeholder="+234 800 000 0000"
-          inputMode="tel"
-          className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] px-3 h-10 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+          onChange={setReceiverPhone}
+          country={idScheme?.split(":")[0] ?? "ng"}
+          size="md"
         />
       </div>
 

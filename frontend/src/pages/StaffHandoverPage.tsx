@@ -7,6 +7,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { custodianApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
+import { PhoneInput } from "@/components/PhoneInput";
 
 type Phase =
   | "loading"
@@ -204,17 +205,12 @@ export default function StaffHandoverPage() {
               <label className="text-xs font-medium text-white block mb-1.5">
                 Phone number <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
-                <input
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+234 800 000 0000"
-                  inputMode="tel"
-                  className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] pl-9 pr-3 h-10 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                />
-              </div>
+              <PhoneInput
+                value={phone}
+                onChange={setPhone}
+                required
+                size="md"
+              />
             </div>
             {error && <p className="text-xs text-red-600">{error}</p>}
             <button
@@ -275,17 +271,12 @@ export default function StaffHandoverPage() {
               <label className="text-xs font-medium text-white block mb-1.5">
                 Phone number <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400" />
-                <input
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+234 800 000 0000"
-                  inputMode="tel"
-                  className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] pl-9 pr-3 h-10 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                />
-              </div>
+              <PhoneInput
+                value={phone}
+                onChange={setPhone}
+                required
+                size="md"
+              />
             </div>
             <button
               type="submit"

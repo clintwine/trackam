@@ -20,8 +20,11 @@ interface Props {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  autoFocus?: boolean;
   /** Optional country override (e.g. for public scan pages). Defaults to operator country. */
   country?: string;
+  /** "sm" matches dashboard inputs (h-9, text-xs). "md" matches public pages (h-10, text-sm). */
+  size?: "sm" | "md";
   className?: string;
 }
 
@@ -40,7 +43,8 @@ function stripTrunk(local: string, trunkPrefix: string): string {
 }
 
 export function PhoneInput({
-  value, onChange, placeholder, required, disabled, country, className,
+  value, onChange, placeholder, required, disabled, autoFocus,
+  country, size = "sm", className,
 }: Props) {
   const operatorCountry = useOperatorCountry();
   const cfg = getCountryPhoneConfig(country ?? operatorCountry);
@@ -52,21 +56,30 @@ export function PhoneInput({
     onChange(digits ? `${cfg.dialCode}${digits}` : "");
   }
 
+  const isMd = size === "md";
+
   return (
     <div
       className={[
-        "flex items-stretch rounded-lg border border-white/[0.08] bg-white/[0.04] overflow-hidden",
-        "focus-within:border-orange-500/40 transition-colors",
+        "flex items-stretch rounded-lg border border-white/[0.08] overflow-hidden",
+        isMd ? "bg-white/[0.06] focus-within:ring-2 focus-within:ring-orange-500/40"
+             : "bg-white/[0.04] focus-within:border-orange-500/40",
+        "transition-colors",
         disabled ? "opacity-60" : "",
         className ?? "",
       ].join(" ")}
     >
       <div
-        className="flex items-center gap-1.5 px-2.5 bg-white/[0.04] border-r border-white/[0.06] shrink-0"
+        className={[
+          "flex items-center gap-1.5 border-r border-white/[0.06] shrink-0",
+          isMd ? "px-3 bg-white/[0.04]" : "px-2.5 bg-white/[0.04]",
+        ].join(" ")}
         title={cfg.name}
       >
-        <span className="text-base leading-none" aria-hidden>{cfg.flag}</span>
-        <span className="text-xs font-medium text-stone-300">{cfg.dialCode}</span>
+        <span className={isMd ? "text-lg leading-none" : "text-base leading-none"} aria-hidden>{cfg.flag}</span>
+        <span className={isMd ? "text-sm font-medium text-stone-200" : "text-xs font-medium text-stone-300"}>
+          {cfg.dialCode}
+        </span>
       </div>
       <input
         type="tel"
@@ -77,7 +90,11 @@ export function PhoneInput({
         placeholder={placeholder ?? "8012345678"}
         required={required}
         disabled={disabled}
-        className="flex-1 min-w-0 bg-transparent px-3 h-9 text-xs text-white placeholder:text-stone-600 focus:outline-none"
+        autoFocus={autoFocus}
+        className={[
+          "flex-1 min-w-0 bg-transparent focus:outline-none placeholder:text-stone-600 text-white",
+          isMd ? "px-3 h-10 text-sm" : "px-3 h-9 text-xs",
+        ].join(" ")}
       />
     </div>
   );
