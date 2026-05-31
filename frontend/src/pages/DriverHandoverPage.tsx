@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Loader2, ShieldCheck, MapPin, ArrowRight, CheckCircle2,
-  Package, Phone, Hash, ChevronRight, Layers,
+  Package, Phone, Hash, ChevronRight, Layers, Truck,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { custodianApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem } from "@/services/handover";
@@ -199,9 +199,17 @@ export default function DriverHandoverPage() {
             }
           }} className="space-y-5">
             <div>
-              <h1 className="text-base font-semibold text-white">Find your custody link</h1>
-              <p className="text-xs text-stone-400 mt-1">
-                Enter the phone number you used when you received the package. We'll re-send your handover link.
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="h-9 w-9 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                  <Truck className="h-4.5 w-4.5 text-purple-400" />
+                </div>
+                <div>
+                  <h1 className="text-base font-semibold text-white">Driver handover</h1>
+                  <p className="text-[11px] text-stone-500">Find your custody link</p>
+                </div>
+              </div>
+              <p className="text-xs text-stone-400 mt-2">
+                Enter the phone number you used when you received the package. We'll re-send your handover link via SMS.
               </p>
             </div>
             <div>
@@ -257,8 +265,16 @@ export default function DriverHandoverPage() {
         {phase === "phone" && (
           <form onSubmit={handleRequestOtp} className="space-y-5">
             <div>
-              <h1 className="text-base font-semibold text-white">Verify your identity</h1>
-              <p className="text-xs text-stone-400 mt-1">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="h-9 w-9 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                  <Truck className="h-4.5 w-4.5 text-purple-400" />
+                </div>
+                <div>
+                  <h1 className="text-base font-semibold text-white">Driver verification</h1>
+                  <p className="text-[11px] text-stone-500">Custody handover</p>
+                </div>
+              </div>
+              <p className="text-xs text-stone-400 mt-2">
                 Enter the phone number you provided when you received this package. We'll send a one-time code.
               </p>
             </div>

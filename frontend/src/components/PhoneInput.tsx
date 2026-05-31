@@ -11,6 +11,7 @@
  * display.
  */
 
+import { useState } from "react";
 import { getCountryPhoneConfig } from "@/lib/idSchemes";
 import { useOperatorCountry } from "@/hooks/useOperatorCountry";
 
@@ -26,6 +27,38 @@ interface Props {
   /** "sm" matches dashboard inputs (h-9, text-xs). "md" matches public pages (h-10, text-sm). */
   size?: "sm" | "md";
   className?: string;
+}
+
+/**
+ * CountryFlag — renders the country flag via flagcdn.com SVG. Falls back to
+ * the OS emoji glyph if the image fails to load (offline, blocked, etc.).
+ * We use SVG because Windows does not include color glyphs for country flag
+ * codepoints, so emoji-only renders as plain "NG" / "GH" text on most desktops.
+ */
+function CountryFlag({ code, name, fallback, size }: {
+  code: string; name: string; fallback: string; size: "sm" | "md";
+}) {
+  const [errored, setErrored] = useState(false);
+  const cls = size === "md" ? "h-3.5 w-5" : "h-3 w-[18px]";
+
+  if (errored) {
+    return (
+      <span className={size === "md" ? "text-lg leading-none" : "text-base leading-none"} aria-label={name}>
+        {fallback}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={`https://flagcdn.com/${code}.svg`}
+      alt={name}
+      width={size === "md" ? 20 : 18}
+      height={size === "md" ? 14 : 12}
+      onError={() => setErrored(true)}
+      className={`${cls} object-cover rounded-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.08)]`}
+    />
+  );
 }
 
 /** Strip the dial code from an E.164 value to get the local subscriber digits. */
@@ -71,12 +104,12 @@ export function PhoneInput({
     >
       <div
         className={[
-          "flex items-center gap-1.5 border-r border-white/[0.06] shrink-0",
+          "flex items-center gap-2 border-r border-white/[0.06] shrink-0",
           isMd ? "px-3 bg-white/[0.04]" : "px-2.5 bg-white/[0.04]",
         ].join(" ")}
         title={cfg.name}
       >
-        <span className={isMd ? "text-lg leading-none" : "text-base leading-none"} aria-hidden>{cfg.flag}</span>
+        <CountryFlag code={cfg.code} name={cfg.name} fallback={cfg.flag} size={isMd ? "md" : "sm"} />
         <span className={isMd ? "text-sm font-medium text-stone-200" : "text-xs font-medium text-stone-300"}>
           {cfg.dialCode}
         </span>

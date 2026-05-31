@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Loader2, ShieldCheck, MapPin, ArrowRight, CheckCircle2,
-  Package, Phone, Hash, ChevronRight, Layers, Building2,
+  Package, Phone, Hash, ChevronRight, Layers, Building2, Users,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { custodianApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem } from "@/services/handover";
@@ -196,8 +196,16 @@ export default function StaffHandoverPage() {
             }
           }} className="space-y-5">
             <div>
-              <h1 className="text-base font-semibold text-white">Find your custody link</h1>
-              <p className="text-xs text-stone-400 mt-1">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="h-9 w-9 rounded-lg bg-orange-500/15 flex items-center justify-center">
+                  <Users className="h-4.5 w-4.5 text-orange-400" />
+                </div>
+                <div>
+                  <h1 className="text-base font-semibold text-white">Staff handover</h1>
+                  <p className="text-[11px] text-stone-500">Find your custody link</p>
+                </div>
+              </div>
+              <p className="text-xs text-stone-400 mt-2">
                 Enter your phone number to retrieve your active custody session. We'll re-send the link via SMS.
               </p>
             </div>
