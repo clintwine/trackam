@@ -25,6 +25,7 @@ function errorHandler(err, req, res, next) {
   const body =
     mapped?.body || {
       message: err.message || "Internal server error",
+      ...(err.field ? { field: err.field } : {}),
     };
 
   logError("unhandled_error", {
