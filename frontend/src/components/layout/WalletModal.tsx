@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Wallet, RefreshCw, X, ArrowRight, Receipt, Loader2, AlertCircle, Plus } from "lucide-react";
 import { walletApi, type WalletData } from "@/services/handover";
@@ -45,10 +46,12 @@ export function WalletModal({ wallet, onClose, onRefresh, refreshing }: Props) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4">
+  // Render to document.body so the modal escapes the dashboard header's
+  // backdrop-blur stacking context (which otherwise traps position: fixed).
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-4">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
@@ -57,7 +60,7 @@ export function WalletModal({ wallet, onClose, onRefresh, refreshing }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Wallet"
-        className="relative w-full max-w-md rounded-xl bg-[#0c1522] shadow-2xl shadow-black/40 border border-white/[0.08] overflow-hidden"
+        className="relative w-full max-w-md rounded-xl bg-[#0c1522] shadow-2xl shadow-black/50 border border-white/[0.08] overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
@@ -165,6 +168,7 @@ export function WalletModal({ wallet, onClose, onRefresh, refreshing }: Props) {
           </Link>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
