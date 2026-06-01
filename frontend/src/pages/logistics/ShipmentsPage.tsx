@@ -1,13 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Package, CheckSquare2, Square, X, Layers, QrCode, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Package, CheckSquare2, Square, X, Layers, QrCode, Loader2, AlertCircle, CheckCircle2, Route as RouteIcon } from "lucide-react";
 import { shipmentsApi, type Shipment, type ShipmentStatus } from "@/services/logistics";
 import {
   handoverApi,
   type ActorType, type BulkHandoverInitiated,
 } from "@/services/handover";
-import { formatNaira, formatDate } from "@/lib/format";
-import { StatusBadge, RiskBadge } from "@/components/logistics/StatusBadge";
+import { StatusBadge } from "@/components/logistics/StatusBadge";
 import { QRCodeSVG } from "qrcode.react";
 
 const FILTERS: { label: string; value: string }[] = [
@@ -181,12 +180,10 @@ export default function ShipmentsPage() {
                 <tr className="border-b border-white/[0.06] bg-white/[0.02]">
                   {selectMode && <th className="px-3 py-2.5 w-8" />}
                   <th className="px-4 py-2.5 text-left font-medium text-stone-500">Shipment</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden sm:table-cell">Route</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden md:table-cell">Rider</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden sm:table-cell">Waybill</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden md:table-cell">Route</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden lg:table-cell">Run</th>
                   <th className="px-4 py-2.5 text-left font-medium text-stone-500">Status</th>
-                  <th className="px-4 py-2.5 text-right font-medium text-stone-500 hidden sm:table-cell">Cost</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden lg:table-cell">Expected</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-stone-500 hidden md:table-cell">Risk</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
@@ -199,7 +196,7 @@ export default function ShipmentsPage() {
                       className={[
                         "transition-colors",
                         selectMode ? "cursor-pointer" : "",
-                        isSelected ? "bg-orange-500/[0.08]" : (s.delayFlag || s.ghostingFlag) ? "bg-orange-500/[0.04]" : "hover:bg-white/[0.03]",
+                        isSelected ? "bg-orange-500/[0.08]" : "hover:bg-white/[0.03]",
                       ].join(" ")}
                     >
                       {selectMode && (
@@ -213,26 +210,38 @@ export default function ShipmentsPage() {
                         <Link
                           to={`/dashboard/shipments/${s.id}`}
                           onClick={(e) => selectMode && e.preventDefault()}
-                          className="font-medium text-stone-200 hover:text-orange-400 truncate block max-w-[180px] transition-colors"
+                          className="font-medium text-stone-200 hover:text-orange-400 truncate block max-w-[220px] transition-colors"
                         >
                           {s.goodsDescription}
                         </Link>
-                        {(s.delayFlag || s.ghostingFlag) && (
-                          <span className="text-[10px] text-orange-400 font-medium">
-                            {s.ghostingFlag ? "⚠ Ghosting risk" : "⚠ Delayed"}
-                          </span>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        {s.waybill?.number ? (
+                          <span className="font-mono text-[11px] text-orange-300/90">{s.waybill.number}</span>
+                        ) : (
+                          <span className="text-stone-700">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-stone-500 hidden sm:table-cell">
-                        <span className="block truncate max-w-[160px]">{s.pickupLocation} → {s.deliveryLocation}</span>
+                      <td className="px-4 py-3 text-stone-500 hidden md:table-cell">
+                        <span className="block truncate max-w-[200px]">{s.pickupLocation} → {s.deliveryLocation}</span>
                       </td>
-                      <td className="px-4 py-3 text-stone-500 hidden md:table-cell">{s.riderName || "—"}</td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        {s.runId ? (
+                          <Link
+                            to={`/dashboard/runs/${s.runId}`}
+                            onClick={(e) => selectMode && e.preventDefault()}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/20 bg-purple-500/[0.08] hover:bg-purple-500/[0.14] px-2 py-0.5 text-[11px] font-medium text-purple-300 transition-colors max-w-[180px]"
+                          >
+                            <RouteIcon className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">
+                              {s.runName || new Date(s.createdAt).toLocaleDateString("en-NG", { day: "2-digit", month: "short" })}
+                            </span>
+                          </Link>
+                        ) : (
+                          <span className="text-stone-700">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3"><StatusBadge status={s.status as ShipmentStatus} /></td>
-                      <td className="px-4 py-3 text-right font-medium text-stone-200 hidden sm:table-cell">
-                        {formatNaira(s.totalCost)}
-                      </td>
-                      <td className="px-4 py-3 text-stone-500 hidden lg:table-cell">{formatDate(s.expectedDeliveryDate)}</td>
-                      <td className="px-4 py-3 hidden md:table-cell"><RiskBadge score={s.riskScore} /></td>
                     </tr>
                   );
                 })}

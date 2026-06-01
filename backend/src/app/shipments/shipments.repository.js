@@ -65,9 +65,22 @@ async function list(userId, { status, riderId, limit = 50, offset = 0 } = {}) {
 
   values.push(limit, offset);
   const result = await query(
-    `SELECT s.*, r.name AS rider_name
+    `SELECT s.*,
+            r.name           AS rider_name,
+            dr.id            AS run_id,
+            dr.name          AS run_name,
+            dr.status        AS run_status,
+            dr.total_cost    AS run_total_cost,
+            lw.waybill_number,
+            lw.sender_name,
+            lw.sender_phone,
+            lw.receiver_name,
+            lw.receiver_phone,
+            lw.created_at    AS waybill_created_at
      FROM shipments s
-     LEFT JOIN riders r ON r.id = s.rider_id
+     LEFT JOIN riders r         ON r.id = s.rider_id
+     LEFT JOIN dispatch_runs dr ON dr.id = s.run_id
+     LEFT JOIN lite_waybills lw ON lw.id = s.waybill_id
      WHERE ${conditions.join(" AND ")}
      ORDER BY s.created_at DESC
      LIMIT $${i++} OFFSET $${i++}`,
