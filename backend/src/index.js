@@ -132,6 +132,9 @@ app.use("/api/wallet",   rateLimiter, localAuthOptional, oliProxy);
 // Dispatch runs — operator vehicle trip grouping
 app.use("/api/runs", rateLimiter, require("./app/runs/runs.controller"));
 
+// System endpoints — version checks, etc.
+app.use("/api/system", require("./app/system/system.controller"));
+
 app.use("/", (req, res) => {
   res.send(
     "Trackam backend API. Routes: /api/riders, /api/routes, /api/shipments, /api/logistics/dashboard, /api/logistics/settings"

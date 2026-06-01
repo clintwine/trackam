@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import WalletWidget from "./WalletWidget";
+import UpdateAvailable from "./UpdateAvailable";
 
 const NAV_ITEMS = [
   { to: "/dashboard",           label: "Overview",  icon: LayoutDashboard, end: true },
@@ -123,6 +124,11 @@ function SidebarContent({
 
       {/* Footer */}
       <div className="px-2 pb-4 space-y-1 border-t border-white/[0.06] pt-3 shrink-0">
+        {/* Update available — only renders when current commit differs from latest */}
+        <div className="mb-2">
+          <UpdateAvailable collapsed={collapsed} />
+        </div>
+
         <AnimatePresence initial={false}>
           {!collapsed && profile && (
             <motion.div
