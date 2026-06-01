@@ -10,6 +10,9 @@
 
 const express = require("express");
 const router  = express.Router();
+const path    = require("path");
+const fs      = require("fs");
+const { execSync } = require("child_process");
 const asyncHandler = require("../../core/middlewares/asyncHandler");
 const localAuth    = require("../../core/middlewares/localAuth");
 
@@ -17,14 +20,80 @@ const REPO_OWNER = process.env.TRACKAM_REPO_OWNER || "Jeffreyon";
 const REPO_NAME  = process.env.TRACKAM_REPO_NAME  || "trackam";
 const REPO_BRANCH = process.env.TRACKAM_REPO_BRANCH || "main";
 
-// Try multiple env conventions so this works on Railway/Render/Fly/Heroku/local-Docker
-const CURRENT_COMMIT_FULL =
-  process.env.GIT_COMMIT ||
-  process.env.RAILWAY_GIT_COMMIT_SHA ||
-  process.env.RENDER_GIT_COMMIT ||
-  process.env.SOURCE_COMMIT ||
-  process.env.HEROKU_SLUG_COMMIT ||
-  null;
+/**
+ * Resolve the current deployed commit. Tries (in order):
+ *   1. Hosted-platform env vars (Railway, Render, Fly, Heroku, manual GIT_COMMIT)
+ *   2. Reading the local .git/HEAD on disk — works for `trackam-cli` style
+ *      installs where the operator runs from a checkout
+ *   3. `git rev-parse HEAD` as a last resort
+ * Returns null only if all three fail.
+ */
+function resolveCurrentCommit() {
+  const fromEnv =
+    process.env.GIT_COMMIT ||
+    process.env.RAILWAY_GIT_COMMIT_SHA ||
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.SOURCE_COMMIT ||
+    process.env.HEROKU_SLUG_COMMIT;
+  if (fromEnv) return fromEnv;
+
+  // Walk up from this file to find a .git directory
+  let dir = __dirname;
+  for (let i = 0; i < 8; i++) {
+    const candidate = path.join(dir, ".git");
+    if (fs.existsSync(candidate)) {
+      try {
+        const headPath = path.join(candidate, "HEAD");
+        if (fs.existsSync(headPath)) {
+          const head = fs.readFileSync(headPath, "utf8").trim();
+          // HEAD is either "ref: refs/heads/main" or a raw SHA (detached)
+          if (head.startsWith("ref:")) {
+            const refPath = path.join(candidate, head.slice(5).trim());
+            if (fs.existsSync(refPath)) {
+              const sha = fs.readFileSync(refPath, "utf8").trim();
+              if (/^[0-9a-f]{40}$/i.test(sha)) return sha;
+            }
+            // Fall through to packed-refs
+            const packed = path.join(candidate, "packed-refs");
+            if (fs.existsSync(packed)) {
+              const ref = head.slice(5).trim();
+              const line = fs.readFileSync(packed, "utf8")
+                .split("\n").find((l) => l.endsWith(" " + ref));
+              if (line) return line.split(" ")[0];
+            }
+          } else if (/^[0-9a-f]{40}$/i.test(head)) {
+            return head;
+          }
+        }
+        break;
+      } catch {
+        break;
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  // Last resort: shell out
+  try {
+    const sha = execSync("git rev-parse HEAD", {
+      cwd: path.join(__dirname, "..", "..", ".."),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (/^[0-9a-f]{40}$/i.test(sha)) return sha;
+  } catch { /* ignore */ }
+
+  return null;
+}
+
+const CURRENT_COMMIT_FULL = resolveCurrentCommit();
+if (CURRENT_COMMIT_FULL) {
+  console.log(`[system] current commit detected: ${CURRENT_COMMIT_FULL.slice(0, 7)}`);
+} else {
+  console.warn(`[system] no current commit could be detected — update notifications will be disabled`);
+}
 
 const VERSION_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 let _versionCache = { value: null, fetchedAt: 0 };
