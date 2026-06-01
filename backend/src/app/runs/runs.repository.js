@@ -181,9 +181,13 @@ async function updateStatus(runId, userId, status) {
       [status, runId, userId]
     );
     if (!r.rows[0]) return null;
+    // A completed run means OUR rider/hub finished their leg — they handed
+    // off to the next custodian. The shipment is NOT delivered until the
+    // final receiver confirms (proof-of-delivery is a future feature; until
+    // then we propagate via OLI Switch events).
     await query(
-      `UPDATE shipments SET status = 'delivered', updated_at = NOW()
-       WHERE run_id = $1 AND status NOT IN ('failed','ghosted')`,
+      `UPDATE shipments SET status = 'handed_over', updated_at = NOW()
+       WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted')`,
       [runId]
     );
   } else if (status === "cancelled") {
@@ -193,9 +197,15 @@ async function updateStatus(runId, userId, status) {
       [status, runId, userId]
     );
     if (!r.rows[0]) return null;
+    // Detach shipments from the cancelled run, returning each to its prior
+    // holding state: in_custody if it had been received from another operator
+    // (waybill-backed), otherwise pending (originally claimed by us).
     await query(
-      `UPDATE shipments SET status = 'pending', run_id = NULL, updated_at = NOW()
-       WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted')`,
+      `UPDATE shipments
+          SET status = CASE WHEN waybill_id IS NOT NULL THEN 'in_custody' ELSE 'pending' END,
+              run_id = NULL,
+              updated_at = NOW()
+        WHERE run_id = $1 AND status NOT IN ('delivered','failed','ghosted','handed_over')`,
       [runId]
     );
   } else {

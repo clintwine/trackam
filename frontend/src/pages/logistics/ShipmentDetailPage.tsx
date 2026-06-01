@@ -43,10 +43,13 @@ type Role =
 function deriveRole(s: ShipmentStatus): { role: Role; label: string; tone: string } {
   switch (s) {
     case "pending":
-      return { role: "current-custodian", label: "You currently hold custody",
-        tone: "border-blue-500/20 bg-blue-500/[0.08] text-blue-300" };
+      return { role: "current-custodian", label: "Awaiting dispatch",
+        tone: "border-stone-500/20 bg-stone-500/[0.08] text-stone-300" };
+    case "in_custody":
+      return { role: "current-custodian", label: "In your custody — received, awaiting next action",
+        tone: "border-amber-500/20 bg-amber-500/[0.08] text-amber-300" };
     case "in_transit":
-      return { role: "current-custodian", label: "In transit — under your custody",
+      return { role: "current-custodian", label: "In transit — your rider is carrying this",
         tone: "border-blue-500/20 bg-blue-500/[0.08] text-blue-300" };
     case "handed_over":
       return { role: "handed-off", label: "Handed off to the next custodian",
@@ -116,29 +119,16 @@ export default function ShipmentDetailPage() {
     setHandoverEvents(events);
 
     if (s.waybillId) {
+      // Just fetch the chain for display. We deliberately don't auto-flip
+      // local status from the chain anymore — the old logic couldn't tell
+      // "we received it" from "we handed it off" (any non-sender event
+      // triggered it). Status now flows from explicit actions:
+      //   - join-leg → in_custody
+      //   - run dispatch / completion → in_transit / handed_over
+      //   - operator-initiated handover QR → handed_over (via SSE)
+      //   - final receiver confirms on the chain → delivered (via webhook)
       publicWaybillApi.getChain(s.waybillId)
-        .then(async (data: { chain: ChainEvent[] }) => {
-          setWaybillChain(data.chain);
-          const realHandovers = data.chain.filter(
-            (e) => e.giverActorType !== "ACTOR_SENDER"
-          );
-          // Auto-sync to "handed_over" when the chain shows we've passed it on
-          if (
-            realHandovers.length > 0 &&
-            ["pending", "in_transit", "disputed"].includes(s.status)
-          ) {
-            try {
-              const updated = await shipmentsApi.updateStatus(
-                s.id,
-                "handed_over" as ShipmentStatus,
-                "Auto-synced from OLI custody chain"
-              );
-              setShipment(updated);
-              const freshLog = await shipmentsApi.getLog(s.id);
-              setLog(freshLog as StatusLogEntry[]);
-            } catch { /* ignore */ }
-          }
-        })
+        .then((data: { chain: ChainEvent[] }) => setWaybillChain(data.chain))
         .catch(() => {});
     }
   }

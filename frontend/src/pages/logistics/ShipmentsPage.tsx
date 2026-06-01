@@ -10,12 +10,12 @@ import { StatusBadge } from "@/components/logistics/StatusBadge";
 import { QRCodeSVG } from "qrcode.react";
 
 const FILTERS: { label: string; value: string }[] = [
-  { label: "All", value: "" },
-  { label: "Pending", value: "pending" },
-  { label: "In Transit", value: "in_transit" },
-  { label: "Delivered", value: "delivered" },
-  { label: "Ghosted", value: "ghosted" },
-  { label: "Failed", value: "failed" },
+  { label: "All",         value: "" },
+  { label: "Pending",     value: "pending" },
+  { label: "In Custody",  value: "in_custody" },
+  { label: "In Transit",  value: "in_transit" },
+  { label: "Handed Over", value: "handed_over" },
+  { label: "Delivered",   value: "delivered" },
 ];
 
 const BULK_ACTOR_OPTIONS: { value: ActorType; label: string; internal: boolean }[] = [

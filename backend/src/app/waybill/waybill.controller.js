@@ -146,15 +146,15 @@ async function upsertLiteWaybill(w) {
  * Upsert a local shipments record for a waybill leg.
  * Uses the OLI-generated shipmentId so frontend URLs stay consistent.
  */
-async function upsertLocalShipment({ shipmentId, userId, waybillId, waybill }) {
+async function upsertLocalShipment({ shipmentId, userId, waybillId, waybill, initialStatus = "pending" }) {
   await query(
     `INSERT INTO shipments
        (id, user_id, waybill_id,
         goods_description, pickup_location, delivery_location,
         distance_km, shipment_value,
-        recipient_name, recipient_phone,
+        recipient_name, recipient_phone, recipient_email,
         status, risk_score)
-     VALUES ($1,$2,$3,$4,$5,$6, 0,$7,$8,$9, 'pending','low')
+     VALUES ($1,$2,$3,$4,$5,$6, 0,$7,$8,$9,$10, $11,'low')
      ON CONFLICT (id) DO NOTHING`,
     [
       shipmentId,
@@ -166,6 +166,8 @@ async function upsertLocalShipment({ shipmentId, userId, waybillId, waybill }) {
       waybill.shipmentValue || 0,
       waybill.receiverName  || null,
       waybill.receiverPhone || null,
+      waybill.receiverEmail || null,
+      initialStatus,
     ]
   );
 }
@@ -267,17 +269,29 @@ router.post("/:waybillId/join-leg", localAuthOptional, asyncHandler(async (req, 
     return res.status(502).json({ error: "OLI switch unavailable", detail: err.message });
   }
 
-  // OLI join-leg response: { shipmentId, waybillId }
+  // OLI join-leg response: { shipmentId, waybillId, waybill: { ..full data including phones.. } }
   const { shipmentId } = oliData;
 
   if (shipmentId && userId) {
     try {
-      // Fetch waybill details so we can populate the local records
-      const { status: wStatus, data: waybill } = await oliGet(`/api/waybill/${waybillId}`, userId);
-
-      if (wStatus === 200 && waybill?.id) {
+      // Prefer the full waybill payload that the join-leg endpoint now returns
+      // inline — it includes sender/receiver phones since the joining operator
+      // has earned the right to communicate with the parties. Falls back to the
+      // public lookup (PII-stripped) only if the new field isn't present.
+      let waybill = oliData.waybill;
+      if (!waybill?.id) {
+        const { status: wStatus, data: fetched } = await oliGet(`/api/waybill/${waybillId}`, userId);
+        if (wStatus === 200 && fetched?.id) waybill = fetched;
+      }
+      if (waybill?.id) {
         await upsertLiteWaybill(waybill);
-        await upsertLocalShipment({ shipmentId, userId, waybillId: waybill.id, waybill });
+        // The operator just received goods from another operator's driver —
+        // they physically hold the package now. Mark as in_custody so the
+        // status reflects ownership without implying dispatch or hand-off.
+        await upsertLocalShipment({
+          shipmentId, userId, waybillId: waybill.id, waybill,
+          initialStatus: "in_custody",
+        });
       }
     } catch (dbErr) {
       console.error("[waybill.controller] Failed to mirror joined shipment locally:", dbErr.message);
@@ -386,10 +400,19 @@ router.post("/confirm-and-join", localAuthOptional, asyncHandler(async (req, res
   const { shipmentId } = joinData;
   if (shipmentId) {
     try {
-      const { status: wStatus, data: waybill } = await oliGet(`/api/waybill/${waybillId}`, userId);
-      if (wStatus === 200 && waybill?.id) {
+      // Prefer the inline waybill from the join-leg response (PII intact);
+      // fall back to the public lookup only if the field isn't there.
+      let waybill = joinData.waybill;
+      if (!waybill?.id) {
+        const { status: wStatus, data: fetched } = await oliGet(`/api/waybill/${waybillId}`, userId);
+        if (wStatus === 200 && fetched?.id) waybill = fetched;
+      }
+      if (waybill?.id) {
         await upsertLiteWaybill(waybill);
-        await upsertLocalShipment({ shipmentId, userId, waybillId: waybill.id, waybill });
+        await upsertLocalShipment({
+          shipmentId, userId, waybillId: waybill.id, waybill,
+          initialStatus: "in_custody",
+        });
       }
     } catch (dbErr) {
       console.error("[waybill.controller] Failed to mirror joined shipment locally:", dbErr.message);

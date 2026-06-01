@@ -8,10 +8,13 @@ const { query } = require("../../core/db/postgres");
 
 const OLI_SWITCH_URL = process.env.OLI_SWITCH_URL || "http://localhost:5000";
 
-const VALID_STATUSES = ["pending", "in_transit", "delivered", "failed", "ghosted", "handed_over", "disputed"];
+const VALID_STATUSES = ["pending", "in_custody", "in_transit", "delivered", "failed", "ghosted", "handed_over", "disputed"];
 
+// "in_custody" — the operator physically holds the goods (typically after
+// receiving via join-leg from another operator). Awaiting next action.
 const VALID_TRANSITIONS = {
-  pending:     ["in_transit", "failed", "handed_over"],
+  pending:     ["in_custody", "in_transit", "failed", "handed_over"],
+  in_custody:  ["in_transit", "handed_over", "failed", "disputed"],
   in_transit:  ["delivered", "ghosted", "failed", "handed_over"],
   handed_over: ["in_transit", "delivered", "ghosted", "failed", "handed_over", "disputed"],
   ghosted:     ["in_transit", "disputed"],

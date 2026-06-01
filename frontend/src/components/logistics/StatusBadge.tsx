@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<ShipmentStatus, string> = {
   pending:     "bg-stone-500/[0.12] text-stone-400 border-stone-500/20",
+  in_custody:  "bg-amber-500/[0.1] text-amber-300 border-amber-500/20",
   in_transit:  "bg-blue-500/[0.1] text-blue-400 border-blue-500/20",
   delivered:   "bg-emerald-500/[0.1] text-emerald-400 border-emerald-500/20",
   failed:      "bg-red-500/[0.1] text-red-400 border-red-500/20",
@@ -13,6 +14,7 @@ const STATUS_STYLES: Record<ShipmentStatus, string> = {
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
   pending:     "Pending",
+  in_custody:  "In Custody",
   in_transit:  "In Transit",
   delivered:   "Delivered",
   failed:      "Failed",
