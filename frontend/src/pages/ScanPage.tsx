@@ -327,6 +327,12 @@ export default function ScanPage() {
             <p className="text-[11px] text-stone-400">
               Save these hashes as your custody receipt.
             </p>
+            <a
+              href="/handover"
+              className="w-full max-w-xs inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 h-11 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 transition-all"
+            >
+              <ShieldCheck className="h-4 w-4" /> Go to Handover
+            </a>
             <a href="/waybill" className="inline-flex items-center gap-1.5 text-xs text-orange-400 underline underline-offset-2">
               Generate a new waybill <ArrowRight className="h-3 w-3" />
             </a>
