@@ -22,6 +22,7 @@ function mapRow(row) {
     riskScoreReasons: row.risk_score_reasons || [],
     recipientName: row.recipient_name || null,
     recipientPhone: row.recipient_phone || null,
+    recipientEmail: row.recipient_email || null,
     expectedDeliveryDate: row.expected_delivery_date,
     actualDeliveryDate: row.actual_delivery_date,
     lastStatusUpdateAt: row.last_status_update_at,
@@ -31,6 +32,26 @@ function mapRow(row) {
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+
+    // Run context (when this shipment is part of a dispatch run)
+    runId:        row.run_id || null,
+    runName:      row.run_name || null,
+    runStatus:    row.run_status || null,
+    runTotalCost: row.run_total_cost != null ? Number(row.run_total_cost) : null,
+    runLegCount:  row.run_leg_count  != null ? Number(row.run_leg_count) : null,
+
+    // Waybill context (set when this shipment was claimed/joined from a waybill)
+    waybill: row.waybill_number ? {
+      number:         row.waybill_number,
+      senderName:     row.sender_name     || null,
+      senderPhone:    row.sender_phone    || null,
+      receiverName:   row.receiver_name   || null,
+      receiverPhone:  row.receiver_phone  || null,
+      goodsDescription: row.lite_goods_description || null,
+      pickupLocation:   row.lite_pickup_location   || null,
+      deliveryLocation: row.lite_delivery_location || null,
+      createdAt:      row.waybill_created_at || null,
+    } : null,
   };
 }
 
@@ -57,9 +78,26 @@ async function list(userId, { status, riderId, limit = 50, offset = 0 } = {}) {
 
 async function getById(id, userId) {
   const result = await query(
-    `SELECT s.*, r.name AS rider_name
+    `SELECT s.*,
+            r.name           AS rider_name,
+            dr.id            AS run_id,
+            dr.name          AS run_name,
+            dr.status        AS run_status,
+            dr.total_cost    AS run_total_cost,
+            (SELECT COUNT(*)::int FROM shipments WHERE run_id = dr.id) AS run_leg_count,
+            lw.waybill_number,
+            lw.sender_name,
+            lw.sender_phone,
+            lw.receiver_name,
+            lw.receiver_phone,
+            lw.goods_description AS lite_goods_description,
+            lw.pickup_location   AS lite_pickup_location,
+            lw.delivery_location AS lite_delivery_location,
+            lw.created_at        AS waybill_created_at
      FROM shipments s
-     LEFT JOIN riders r ON r.id = s.rider_id
+     LEFT JOIN riders r            ON r.id = s.rider_id
+     LEFT JOIN dispatch_runs dr    ON dr.id = s.run_id
+     LEFT JOIN lite_waybills lw    ON lw.id = s.waybill_id
      WHERE s.id = $1 AND s.user_id = $2`,
     [id, userId]
   );

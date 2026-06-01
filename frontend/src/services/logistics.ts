@@ -54,6 +54,7 @@ export interface Shipment {
   riskScoreReasons: string[];
   recipientName: string | null;
   recipientPhone: string | null;
+  recipientEmail: string | null;
   expectedDeliveryDate: string | null;
   actualDeliveryDate: string | null;
   lastStatusUpdateAt: string;
@@ -62,6 +63,26 @@ export interface Shipment {
   shipmentValue: number;
   notes: string | null;
   createdAt: string;
+
+  // Run context (when this shipment is part of a dispatch run)
+  runId:        string | null;
+  runName:      string | null;
+  runStatus:    string | null;
+  runTotalCost: number | null;
+  runLegCount:  number | null;
+
+  // Waybill context (set when this shipment was claimed/joined via a waybill)
+  waybill: {
+    number: string;
+    senderName: string | null;
+    senderPhone: string | null;
+    receiverName: string | null;
+    receiverPhone: string | null;
+    goodsDescription: string | null;
+    pickupLocation: string | null;
+    deliveryLocation: string | null;
+    createdAt: string | null;
+  } | null;
 }
 
 export interface StatusLogEntry {

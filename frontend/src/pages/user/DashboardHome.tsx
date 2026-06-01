@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle, Truck, Navigation, Package, Plus, FileText, ChevronRight,
-  ShieldAlert, Skull, Clock, TrendingUp, Trophy, Bike,
+  ShieldAlert, Skull, Clock, TrendingUp, Trophy, Bike, ScanLine,
 } from "lucide-react";
 import { dashboardApi, type DashboardSummary, type RunAlert, type TopRider } from "@/services/logistics";
 import { oliAccountApi, type OliAccountStatus } from "@/services/oliAccount";
 import { formatNaira } from "@/lib/format";
+import JoinLegModal from "@/components/logistics/JoinLegModal";
 
 const VEHICLE_LABELS: Record<string, string> = {
   bike: "Bike", tricycle: "Tricycle", van: "Van", truck: "Truck",
@@ -18,6 +19,7 @@ export default function DashboardHome() {
   const [topRiders, setTopRiders] = useState<TopRider[]>([]);
   const [oliStatus, setOliStatus] = useState<OliAccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -70,6 +72,12 @@ export default function DashboardHome() {
         >
           <Plus className="h-3.5 w-3.5" /> Start a new run
         </Link>
+        <button
+          onClick={() => setJoinOpen(true)}
+          className="group inline-flex items-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/[0.08] hover:bg-purple-500/[0.14] hover:border-purple-500/40 px-4 h-10 text-xs font-semibold text-purple-200 transition-all"
+        >
+          <ScanLine className="h-3.5 w-3.5" /> Join a leg
+        </button>
         <Link
           to="/dashboard/waybills"
           className="group inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] px-4 h-10 text-xs font-medium text-stone-300 hover:text-white transition-all"
@@ -240,6 +248,8 @@ export default function DashboardHome() {
           </p>
         </div>
       )}
+
+      {joinOpen && <JoinLegModal onClose={() => setJoinOpen(false)} />}
     </div>
   );
 }
