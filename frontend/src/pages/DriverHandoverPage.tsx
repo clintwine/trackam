@@ -9,6 +9,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { custodianApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem, type CustodySessionSummary } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
 import { PhoneInput } from "@/components/PhoneInput";
+import { savePhoneToken, getPhoneToken, clearPhoneToken } from "@/lib/custodianPhoneToken";
 
 type Phase =
   | "loading"
@@ -90,8 +91,26 @@ export default function DriverHandoverPage() {
     : null;
 
   useEffect(() => {
-    if (!sessionId) setPhase("find-phone");
-    else setPhase("phone");
+    // Legacy SMS-link path (?ref=<sessionId>) — always asks for phone+OTP for
+    // the specific session it carries.
+    if (sessionId) { setPhase("phone"); return; }
+
+    // Otherwise: if we have a saved phone token, skip straight to the
+    // session picker. Expired / revoked tokens are cleared silently and
+    // the user lands on the normal phone-entry form.
+    const saved = getPhoneToken();
+    if (!saved) { setPhase("find-phone"); return; }
+
+    custodianApi.sessionsByPhoneToken(saved)
+      .then((result) => {
+        setDiscoveredSessions(result.sessions || []);
+        setPhone(result.phone || "");
+        setPhase("session-picker");
+      })
+      .catch(() => {
+        clearPhoneToken();
+        setPhase("find-phone");
+      });
   }, [sessionId]);
 
   // Countdown for QR expiry
@@ -167,6 +186,9 @@ export default function DriverHandoverPage() {
     try {
       const result = await custodianApi.verifyOtpByPhone(phone, otp);
       setDiscoveredSessions(result.sessions || []);
+      // Stash the long-lived token so refreshing the page keeps the rider
+      // signed in until it expires (7 days).
+      if (result.phoneToken) savePhoneToken(result.phoneToken);
       setPhase("session-picker");
     } catch (err: unknown) {
       setError(
@@ -339,7 +361,7 @@ export default function DriverHandoverPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setOtp(""); setError(""); setPhase("find-phone"); }}
+              onClick={() => { clearPhoneToken(); setPhone(""); setOtp(""); setDiscoveredSessions([]); setError(""); setPhase("find-phone"); }}
               className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors"
             >
               Use a different phone number
@@ -433,7 +455,7 @@ export default function DriverHandoverPage() {
 
             <button
               type="button"
-              onClick={() => { setOtp(""); setError(""); setPhase("find-phone"); }}
+              onClick={() => { clearPhoneToken(); setPhone(""); setOtp(""); setDiscoveredSessions([]); setError(""); setPhase("find-phone"); }}
               className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors"
             >
               Use a different phone number
@@ -785,6 +807,10 @@ export default function DriverHandoverPage() {
                   if (discoveredSessions.length > 0) {
                     setPhase("session-picker");
                   } else {
+                    // Real sign-out — drop the long-lived token too so we
+                    // don't auto-resume on the next visit.
+                    clearPhoneToken();
+                    setPhone("");
                     setOtp("");
                     setPhase("find-phone");
                   }

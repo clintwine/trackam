@@ -281,9 +281,22 @@ export const custodianApi = {
     ).then((r) => r.data),
 
   verifyOtpByPhone: (phone: string, otp: string) =>
-    axios.post<{ sessions: CustodySessionSummary[] }>(
+    axios.post<{
+      sessions: CustodySessionSummary[];
+      phone: string;
+      phoneToken: string;
+      phoneTokenExpiresAt: string;
+    }>(
       `${publicBase()}/api/custodian/verify-otp-by-phone`,
       { phone, otp }
+    ).then((r) => r.data),
+
+  // Resume an existing phone session (no OTP needed) using a long-lived phone
+  // token saved in localStorage. Throws 401 when the token has expired.
+  sessionsByPhoneToken: (phoneToken: string) =>
+    axios.get<{ sessions: CustodySessionSummary[]; phone: string }>(
+      `${publicBase()}/api/custodian/sessions/by-phone-token`,
+      { headers: { Authorization: `Bearer ${phoneToken}` } }
     ).then((r) => r.data),
 };
 

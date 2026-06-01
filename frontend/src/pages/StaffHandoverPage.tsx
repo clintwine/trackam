@@ -9,6 +9,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { custodianApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem, type CustodySessionSummary } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
 import { PhoneInput } from "@/components/PhoneInput";
+import { savePhoneToken, getPhoneToken, clearPhoneToken } from "@/lib/custodianPhoneToken";
 
 type Phase =
   | "loading"
@@ -87,8 +88,22 @@ export default function StaffHandoverPage() {
     : null;
 
   useEffect(() => {
-    if (!sessionId) setPhase("find-phone");
-    else setPhase("phone");
+    if (sessionId) { setPhase("phone"); return; }
+
+    // Auto-resume from a saved phone token if we have one
+    const saved = getPhoneToken();
+    if (!saved) { setPhase("find-phone"); return; }
+
+    custodianApi.sessionsByPhoneToken(saved)
+      .then((result) => {
+        setDiscoveredSessions(result.sessions || []);
+        setPhone(result.phone || "");
+        setPhase("session-picker");
+      })
+      .catch(() => {
+        clearPhoneToken();
+        setPhase("find-phone");
+      });
   }, [sessionId]);
 
   useEffect(() => {
@@ -163,6 +178,7 @@ export default function StaffHandoverPage() {
     try {
       const result = await custodianApi.verifyOtpByPhone(phone, otp);
       setDiscoveredSessions(result.sessions || []);
+      if (result.phoneToken) savePhoneToken(result.phoneToken);
       setPhase("session-picker");
     } catch (err: unknown) {
       setError(
@@ -336,7 +352,7 @@ export default function StaffHandoverPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setOtp(""); setError(""); setPhase("find-phone"); }}
+              onClick={() => { clearPhoneToken(); setPhone(""); setOtp(""); setDiscoveredSessions([]); setError(""); setPhase("find-phone"); }}
               className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors"
             >
               Use a different phone number
@@ -430,7 +446,7 @@ export default function StaffHandoverPage() {
 
             <button
               type="button"
-              onClick={() => { setOtp(""); setError(""); setPhase("find-phone"); }}
+              onClick={() => { clearPhoneToken(); setPhone(""); setOtp(""); setDiscoveredSessions([]); setError(""); setPhase("find-phone"); }}
               className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors"
             >
               Use a different phone number
@@ -778,6 +794,8 @@ export default function StaffHandoverPage() {
                   if (discoveredSessions.length > 0) {
                     setPhase("session-picker");
                   } else {
+                    clearPhoneToken();
+                    setPhone("");
                     setOtp("");
                     setPhase("find-phone");
                   }
