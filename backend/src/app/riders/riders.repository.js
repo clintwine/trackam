@@ -7,6 +7,7 @@ function mapRow(row) {
     userId: row.user_id,
     name: row.name,
     phone: row.phone,
+    email: row.email || null,
     bvn: row.bvn || null,
     vehicleType: row.vehicle_type,
     cityCoverage: row.city_coverage,
@@ -56,12 +57,12 @@ async function getById(id, userId) {
   return mapRow(result.rows[0]);
 }
 
-async function create({ userId, name, phone, bvn, vehicleType, cityCoverage, baseFee }) {
+async function create({ userId, name, phone, email, bvn, vehicleType, cityCoverage, baseFee }) {
   const result = await query(
-    `INSERT INTO riders (user_id, name, phone, bvn, vehicle_type, city_coverage, base_fee)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO riders (user_id, name, phone, email, bvn, vehicle_type, city_coverage, base_fee)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [userId, name, phone, bvn || null, vehicleType, cityCoverage, baseFee]
+    [userId, name, phone, email || null, bvn || null, vehicleType, cityCoverage, baseFee]
   );
   return mapRow(result.rows[0]);
 }
@@ -73,6 +74,7 @@ async function update(id, userId, fields) {
 
   if (fields.name !== undefined) { setClauses.push(`name = $${i++}`); values.push(fields.name); }
   if (fields.phone !== undefined) { setClauses.push(`phone = $${i++}`); values.push(fields.phone); }
+  if (fields.email !== undefined) { setClauses.push(`email = $${i++}`); values.push(fields.email || null); }
   if (fields.bvn !== undefined) { setClauses.push(`bvn = $${i++}`); values.push(fields.bvn); }
   if (fields.vehicleType !== undefined) { setClauses.push(`vehicle_type = $${i++}`); values.push(fields.vehicleType); }
   if (fields.cityCoverage !== undefined) { setClauses.push(`city_coverage = $${i++}`); values.push(fields.cityCoverage); }

@@ -19,15 +19,20 @@ module.exports = async function injectRiderPhone(req, res, next) {
     if (!runId) return next();
 
     const result = await query(
-      `SELECT r.phone
+      `SELECT r.phone, r.email
        FROM dispatch_runs dr
        JOIN riders r ON r.id = dr.rider_id
        WHERE dr.id = $1 AND dr.user_id = $2`,
       [runId, req.user.uid]
     );
     const phone = result.rows[0]?.phone;
-    if (phone) {
-      req.body = { ...req.body, expectedReceiverPhone: phone };
+    const email = result.rows[0]?.email;
+    if (phone || email) {
+      req.body = {
+        ...req.body,
+        ...(phone && { expectedReceiverPhone: phone }),
+        ...(email && { expectedReceiverEmail: email }),
+      };
     }
   } catch (err) {
     // Don't block the proxy on lookup errors — just log and continue

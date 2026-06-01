@@ -10,6 +10,7 @@ export interface Rider {
   id: string;
   name: string;
   phone: string;
+  email: string | null;
   vehicleType: VehicleType;
   cityCoverage: string;
   baseFee: number;

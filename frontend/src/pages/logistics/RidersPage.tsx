@@ -90,7 +90,7 @@ function GhostRateBadge({ rate }: { rate: number | null }) {
 }
 
 function AddRiderModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [form, setForm] = useState({ name: "", phone: "", vehicleType: "bike" as VehicleType, cityCoverage: "", baseFee: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", vehicleType: "bike" as VehicleType, cityCoverage: "", baseFee: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -147,6 +147,19 @@ function AddRiderModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             placeholder="8012345678"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-stone-300 mb-1">Email</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={set("email")}
+            placeholder="rider@example.com"
+            className={inputCls}
+            required
+          />
+          <p className="text-[10px] text-stone-600 mt-1">Used to deliver custody codes if SMS to their phone is unavailable.</p>
         </div>
 
         <div>

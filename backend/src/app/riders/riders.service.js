@@ -11,15 +11,19 @@ async function getRider(id, userId) {
 }
 
 async function createRider(userId, body) {
-  const { name, phone, vehicleType, cityCoverage, baseFee = 0 } = body;
-  if (!name || !phone || !vehicleType || !cityCoverage) {
-    throw Object.assign(new Error("name, phone, vehicleType, and cityCoverage are required"), { status: 400 });
+  const { name, phone, email, vehicleType, cityCoverage, baseFee = 0 } = body;
+  if (!name || !phone || !email || !vehicleType || !cityCoverage) {
+    throw Object.assign(new Error("name, phone, email, vehicleType, and cityCoverage are required"), { status: 400 });
   }
   const validTypes = ["bike", "tricycle", "van", "truck"];
   if (!validTypes.includes(vehicleType)) {
     throw Object.assign(new Error(`vehicleType must be one of: ${validTypes.join(", ")}`), { status: 400 });
   }
-  return repo.create({ userId, name, phone, vehicleType, cityCoverage, baseFee });
+  return repo.create({
+    userId, name, phone,
+    email: String(email).trim().toLowerCase(),
+    vehicleType, cityCoverage, baseFee,
+  });
 }
 
 async function updateRider(id, userId, body) {

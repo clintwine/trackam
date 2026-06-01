@@ -15,8 +15,10 @@ interface WaybillResult {
 const BLANK_FORM = {
   senderName: "",
   senderPhone: "",
+  senderEmail: "",
   receiverName: "",
   receiverPhone: "",
+  receiverEmail: "",
   receiverAddress: "",
   goodsDescription: "",
   pickupLocation: "",
@@ -169,6 +171,10 @@ export default function WaybillGeneratorPage() {
                 </div>
               </div>
               <div>
+                <label className={labelCls}>Email <span className="text-red-500">*</span></label>
+                <input required type="email" {...field("senderEmail")} placeholder="adaeze@example.com" className={inputCls} />
+              </div>
+              <div>
                 <label className={labelCls}>Pickup location <span className="text-red-500">*</span></label>
                 <input required {...field("pickupLocation")} placeholder="e.g. Alaba Market, Lagos" className={inputCls} />
               </div>
@@ -191,6 +197,10 @@ export default function WaybillGeneratorPage() {
                     size="md"
                   />
                 </div>
+              </div>
+              <div>
+                <label className={labelCls}>Email <span className="text-red-500">*</span></label>
+                <input required type="email" {...field("receiverEmail")} placeholder="emeka@example.com" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Delivery address <span className="text-red-500">*</span></label>
