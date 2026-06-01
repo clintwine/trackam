@@ -1,4 +1,5 @@
 const repo = require("./riders.repository");
+const oliClient = require("../oli/oli.client");
 
 /**
  * Map Postgres unique-violation errors on (user_id, phone) and
@@ -53,16 +54,42 @@ async function createRider(userId, body) {
 }
 
 async function updateRider(id, userId, body) {
-  await getRider(id, userId);
+  const before = await getRider(id, userId);
   const fields = { ...body };
   if (fields.email !== undefined && fields.email !== null) {
     fields.email = String(fields.email).trim().toLowerCase();
   }
+
+  let updated;
   try {
-    return await repo.update(id, userId, fields);
+    updated = await repo.update(id, userId, fields);
   } catch (err) {
     throw mapUniqueViolation(err);
   }
+
+  // If phone or email changed, push the new contact onto any active custody
+  // sessions on OLI Switch so future OTPs / link resends reach the rider.
+  // Fire-and-forget — if the switch is unreachable, the rider edit still
+  // succeeds. The next successful edit will retry.
+  const phoneChanged = updated.phone && updated.phone !== before.phone;
+  const emailChanged = (updated.email || null) !== (before.email || null);
+  if (phoneChanged || emailChanged) {
+    oliClient.post(userId, "/api/custodian/sessions/contact", {
+      oldPhone: before.phone,
+      phone:    updated.phone,
+      email:    updated.email,
+    }).then((result) => {
+      if (result?.skipped) {
+        console.warn(`[riders] OLI sync skipped for ${updated.name} — ${result.reason}`);
+      } else if (result?.updated > 0) {
+        console.log(`[riders] OLI sync — pushed contact to ${result.updated} session(s) for ${updated.name}`);
+      }
+    }).catch((err) => {
+      console.error(`[riders] OLI sync failed for ${updated.name}:`, err?.message || err);
+    });
+  }
+
+  return updated;
 }
 
 async function deactivateRider(id, userId) {

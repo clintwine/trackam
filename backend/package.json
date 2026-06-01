@@ -12,6 +12,7 @@
     "db:seed:bootstrap-admin": "node scripts/seedBootstrapAdmin.js",
     "db:seed:demo": "node scripts/seedDemo.js",
     "db:seed:logistics": "node scripts/seedLogistics.js",
+    "oli:backfill-riders": "node scripts/backfillRiderContacts.js",
     "test": "jest --runInBand"
   },
   "keywords": [],
