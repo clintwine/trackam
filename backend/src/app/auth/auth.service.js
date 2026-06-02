@@ -95,7 +95,7 @@ async function signup({ email, password, profile = {} }) {
     const { query: dbQuery } = require("../../core/db/postgres");
     const countResult = await dbQuery("SELECT COUNT(*)::int AS cnt FROM users");
     if (Number(countResult.rows[0]?.cnt) === 0) {
-      roles = ["admin", "super_admin"];
+      roles = ["owner"];
     }
   } catch {
     // Non-fatal — worst case the first user doesn't auto-promote

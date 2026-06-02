@@ -3,7 +3,7 @@
 -- Switch and all staff on the Trackam instance share that identity. This
 -- replaces per-user oli_accounts as the primary API key source.
 --
--- Singleton table (id = 'default'). The super_admin role controls access.
+-- Singleton table (id = 'default'). The owner role controls access.
 
 CREATE TABLE IF NOT EXISTS org_oli_config (
   id               TEXT        PRIMARY KEY DEFAULT 'default',
@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS org_oli_config (
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Seed the super_admin role — full org control for the logistics founder
+-- Seed the owner role — logistics company founder, full org control
 INSERT INTO roles (id, description, permissions)
-VALUES ('super_admin', 'Logistics company founder — full org control', ARRAY['*'])
+VALUES ('owner', 'Logistics company founder — full org control', ARRAY['*'])
 ON CONFLICT (id) DO NOTHING;
 
 -- Migrate: if an existing oli_accounts row has an active key, copy it to the

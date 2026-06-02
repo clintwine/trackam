@@ -27,7 +27,7 @@ async function attachAuthz(req, res, next) {
     });
 
     const permissions = Array.from(permissionsSet);
-    const isAdmin = roleIds.includes("admin") || permissions.includes("*");
+    const isAdmin = roleIds.includes("admin") || roleIds.includes("owner") || permissions.includes("*");
 
     if (!userDoc) {
       warn("authz_user_missing", { uid });
@@ -85,7 +85,7 @@ function requireSelfOrAdmin(paramName = "id") {
   };
 }
 
-function requireSuperAdmin(req, res, next) {
+function requireOwner(req, res, next) {
   const authz = req.authz;
 
   if (!authz) {
@@ -93,10 +93,10 @@ function requireSuperAdmin(req, res, next) {
   }
 
   const roleIds = Array.isArray(authz.user?.roles) ? authz.user.roles : [];
-  const isSuperAdmin = roleIds.includes("super_admin") || authz.isAdmin;
+  const isOwner = roleIds.includes("owner");
 
-  if (!isSuperAdmin) {
-    return res.status(403).json({ message: "Super admin privileges required" });
+  if (!isOwner) {
+    return res.status(403).json({ message: "Owner privileges required" });
   }
 
   return next();
@@ -106,5 +106,5 @@ module.exports = {
   attachAuthz,
   requireAdmin,
   requireSelfOrAdmin,
-  requireSuperAdmin,
+  requireOwner,
 };
