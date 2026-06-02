@@ -78,7 +78,10 @@ app.use(morgan("dev"));
 // Must be mounted before express.json() — needs raw body for HMAC verification
 app.use("/api/oli/webhook", require("./app/oli/oli.webhook"));
 
-app.use(express.json());
+// 6MB limit accommodates base64-encoded ID photos (~4MB raw) used during
+// rider onboarding. Most JSON payloads on this API are kilobytes; only
+// rider create/update with govt_id_photo reaches this size.
+app.use(express.json({ limit: "6mb" }));
 
 ensureStorageDir();
 app.use("/storage", express.static(storageDirectory));

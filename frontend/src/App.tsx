@@ -25,6 +25,7 @@ import AdminRolesPage from "@/pages/admin/AdminRolesPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
 import AdminOliPage from "@/pages/admin/AdminOliPage";
 import AdminWalletPage from "@/pages/admin/AdminWalletPage";
+import AdminRiderVerificationPage from "@/pages/admin/AdminRiderVerificationPage";
 import ShipmentsPage from "@/pages/logistics/ShipmentsPage";
 import ShipmentDetailPage from "@/pages/logistics/ShipmentDetailPage";
 import WaybillsPage from "@/pages/logistics/WaybillsPage";
@@ -85,6 +86,7 @@ const router = createBrowserRouter([
       { path: "settings", element: <AdminSettingsPage /> },
       { path: "oli", element: <AdminOliPage /> },
       { path: "wallet", element: <AdminWalletPage /> },
+      { path: "rider-verifications", element: <AdminRiderVerificationPage /> },
     ],
   },
   { path: "*", element: <ErrorPage /> },

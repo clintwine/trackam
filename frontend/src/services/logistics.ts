@@ -6,6 +6,9 @@ export type VehicleType = "bike" | "tricycle" | "van" | "truck";
 export type ShipmentStatus = "pending" | "in_custody" | "in_transit" | "delivered" | "failed" | "ghosted" | "handed_over" | "disputed";
 export type RiskScore = "low" | "medium" | "high";
 
+export type GovtIdType = "nin" | "voters_card" | "passport" | "drivers_license";
+export type VerificationState = "missing" | "pending" | "verified" | "rejected";
+
 export interface Rider {
   id: string;
   name: string;
@@ -17,6 +20,17 @@ export interface Rider {
   isActive: boolean;
   ghostRate: number | null;
   totalShipments: number | null;
+
+  // Government ID — captured once at onboarding, manually verified by admin.
+  // govtIdPhoto is only included when fetching a single rider with ?includePhoto=1.
+  govtIdType: GovtIdType | null;
+  govtIdNumber: string | null;
+  govtIdPhoto?: string | null;
+  govtIdVerifiedAt: string | null;
+  govtIdVerifiedBy: string | null;
+  govtIdRejectionReason: string | null;
+  verificationState: VerificationState;
+
   createdAt: string;
 }
 
@@ -150,10 +164,21 @@ export interface LogisticsSettings {
 
 export const ridersApi = {
   list: () => apiClient.get<Rider[]>("/api/riders").then((r) => r.data),
-  get: (id: string) => apiClient.get<Rider>(`/api/riders/${id}`).then((r) => r.data),
+  get: (id: string, opts: { includePhoto?: boolean } = {}) =>
+    apiClient.get<Rider>(`/api/riders/${id}`, {
+      params: opts.includePhoto ? { includePhoto: 1 } : undefined,
+    }).then((r) => r.data),
   create: (data: Partial<Rider>) => apiClient.post<Rider>("/api/riders", data).then((r) => r.data),
   update: (id: string, data: Partial<Rider>) => apiClient.patch<Rider>(`/api/riders/${id}`, data).then((r) => r.data),
   deactivate: (id: string) => apiClient.delete(`/api/riders/${id}`),
+
+  // Admin-only verification endpoints — non-admins get 403.
+  pendingVerification: () =>
+    apiClient.get<Rider[]>("/api/riders/pending-verification").then((r) => r.data),
+  verify: (id: string) =>
+    apiClient.post<Rider>(`/api/riders/${id}/verify`).then((r) => r.data),
+  reject: (id: string, rejectionReason: string) =>
+    apiClient.post<Rider>(`/api/riders/${id}/reject`, { rejectionReason }).then((r) => r.data),
 };
 
 // ── Routes ────────────────────────────────────────────────────────────────
