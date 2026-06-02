@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Shield, UserX, UserCheck, Loader2 } from "lucide-react";
+import { Shield, UserX, UserCheck, Loader2, Search } from "lucide-react";
 import {
   fetchAllUsers, fetchRoles, updateUserRoles, toggleUserDisabled,
   type AdminUser, type RoleItem,
@@ -11,6 +11,7 @@ export default function AdminUsersPage() {
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const currentUserId = useProfileStore((s) => s.profile?.id);
 
   useEffect(() => {
@@ -59,124 +60,144 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="h-4 w-28 rounded-md bg-muted/60 animate-pulse" />
-          <div className="h-3 w-72 rounded-md bg-muted/40 animate-pulse" />
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4 animate-pulse space-y-2">
-          <div className="h-3 w-full rounded-md bg-muted/40" />
-          <div className="h-3 w-11/12 rounded-md bg-muted/40" />
-          <div className="h-3 w-10/12 rounded-md bg-muted/40" />
-        </div>
+      <div className="space-y-4 max-w-6xl animate-pulse">
+        <div className="h-9 rounded-lg bg-white/[0.03] border border-white/[0.06]" />
+        <div className="h-64 rounded-xl bg-white/[0.03] border border-white/[0.06]" />
       </div>
     );
   }
 
   const availableRoles = roles.map((r) => r.id);
+  const filtered = users.filter((u) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (u.email || "").toLowerCase().includes(q) ||
+      (u.displayName || "").toLowerCase().includes(q) ||
+      (u.roles || []).some((r) => r.toLowerCase().includes(q))
+    );
+  });
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold">Users</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage operators on this instance. Assign roles to control what each user can access.
-        </p>
+    <div className="space-y-4 max-w-6xl">
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-600" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search users by name, email, or role…"
+          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] pl-9 pr-3 h-9 text-xs text-white placeholder:text-stone-600 focus:outline-none focus:border-orange-500/40 transition-colors"
+        />
       </div>
 
-      {users.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-sm text-muted-foreground">
-          No users found.
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
+          <p className="text-sm text-stone-500">
+            {search ? "No users match your search." : "No users yet."}
+          </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-background/60">
-              <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-2 font-medium">User</th>
-                <th className="px-4 py-2 font-medium">Email</th>
-                <th className="px-4 py-2 font-medium">Roles</th>
-                <th className="px-4 py-2 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => {
-                const userRoles = Array.isArray(user.roles) ? user.roles : [];
-                const isDisabled = Boolean((user as unknown as { preferences?: { disabled?: boolean } }).preferences?.disabled);
-                const isSelf = user.id === currentUserId;
-                const busy = busyId === user.id;
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+          {/* Header */}
+          <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.5fr_auto] gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-600">User</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-600">Email</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-600">Roles</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-600 text-right">Status</span>
+          </div>
 
-                return (
-                  <tr
-                    key={user.id}
-                    className={`border-t border-border/60 transition-colors ${isDisabled ? "opacity-50" : "hover:bg-muted/40"}`}
-                  >
-                    <td className="px-4 py-3 align-top">
-                      <div className="text-sm font-medium">
+          <ul className="divide-y divide-white/[0.04]">
+            {filtered.map((user) => {
+              const userRoles = Array.isArray(user.roles) ? user.roles : [];
+              const isDisabled = Boolean((user as unknown as { preferences?: { disabled?: boolean } }).preferences?.disabled);
+              const isSelf = user.id === currentUserId;
+              const busy = busyId === user.id;
+              const initial = (user.displayName || user.email || "?").slice(0, 1).toUpperCase();
+              const isOwner = userRoles.includes("owner");
+
+              return (
+                <li
+                  key={user.id}
+                  className={`grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.5fr_auto] gap-3 px-5 py-3 transition-colors ${isDisabled ? "opacity-50" : "hover:bg-white/[0.02]"}`}
+                >
+                  {/* User */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      isOwner
+                        ? "bg-gradient-to-br from-orange-500/40 to-amber-500/40 text-orange-200"
+                        : "bg-gradient-to-br from-stone-700 to-stone-800 text-stone-300"
+                    }`}>
+                      {initial}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-stone-200 truncate flex items-center gap-1.5">
                         {user.displayName || user.email || user.id}
-                        {isSelf && (
-                          <span className="ml-1.5 text-[10px] text-orange-400 font-medium">(you)</span>
-                        )}
+                        {isSelf && <span className="text-[9px] font-semibold uppercase text-orange-400">(you)</span>}
                       </div>
-                      {isDisabled && (
-                        <span className="text-[10px] text-red-400 font-medium">Disabled</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 align-top text-sm text-muted-foreground">
-                      {user.email ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="flex flex-wrap gap-1">
-                        {availableRoles.map((role) => {
-                          const active = userRoles.includes(role);
-                          return (
-                            <button
-                              key={role}
-                              type="button"
-                              disabled={busy || isSelf}
-                              onClick={() => handleToggleRole(user, role)}
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border transition-all ${
-                                active
-                                  ? "bg-orange-500/[0.12] border-orange-500/25 text-orange-300 hover:bg-orange-500/[0.2]"
-                                  : "bg-white/[0.03] border-white/[0.06] text-stone-500 hover:border-white/[0.12] hover:text-stone-300"
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              title={isSelf ? "Cannot change your own roles" : `${active ? "Remove" : "Add"} ${role} role`}
-                            >
-                              {busy ? (
-                                <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                              ) : (
-                                <Shield className="h-2.5 w-2.5" />
-                              )}
-                              {role}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top text-right">
-                      {!isSelf && (
+                      <div className="text-[10px] text-stone-600 truncate md:hidden">{user.email}</div>
+                    </div>
+                  </div>
+
+                  {/* Email (desktop only) */}
+                  <div className="hidden md:flex items-center min-w-0">
+                    <span className="text-xs text-stone-400 truncate">{user.email ?? "—"}</span>
+                  </div>
+
+                  {/* Roles */}
+                  <div className="flex flex-wrap items-center gap-1 min-w-0">
+                    {availableRoles.map((role) => {
+                      const active = userRoles.includes(role);
+                      return (
                         <button
+                          key={role}
                           type="button"
-                          disabled={busy}
-                          onClick={() => handleToggleDisabled(user)}
-                          className={`inline-flex items-center gap-1 rounded-lg border px-2.5 h-7 text-[11px] font-medium transition-all disabled:opacity-50 ${
-                            isDisabled
-                              ? "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/[0.1]"
-                              : "border-red-500/20 text-red-400 hover:bg-red-500/[0.1]"
-                          }`}
-                          title={isDisabled ? "Re-enable this user" : "Disable this user"}
+                          disabled={busy || isSelf}
+                          onClick={() => handleToggleRole(user, role)}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border transition-all ${
+                            active
+                              ? role === "owner"
+                                ? "bg-orange-500/[0.15] border-orange-500/30 text-orange-300 hover:bg-orange-500/[0.22]"
+                                : "bg-purple-500/[0.12] border-purple-500/25 text-purple-300 hover:bg-purple-500/[0.18]"
+                              : "bg-white/[0.03] border-white/[0.06] text-stone-600 hover:border-white/[0.12] hover:text-stone-400"
+                          } disabled:opacity-40 disabled:cursor-not-allowed`}
+                          title={isSelf ? "Cannot change your own roles" : `${active ? "Remove" : "Add"} ${role} role`}
                         >
-                          {isDisabled
-                            ? <><UserCheck className="h-3 w-3" /> Enable</>
-                            : <><UserX className="h-3 w-3" /> Disable</>}
+                          {busy ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Shield className="h-2.5 w-2.5" />}
+                          {role}
                         </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      );
+                    })}
+                  </div>
+
+                  {/* Status / actions */}
+                  <div className="flex items-center justify-end gap-2">
+                    {isDisabled && (
+                      <span className="text-[10px] font-semibold uppercase text-red-400">Disabled</span>
+                    )}
+                    {!isSelf && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleToggleDisabled(user)}
+                        className={`inline-flex items-center gap-1 rounded-lg border px-2.5 h-7 text-[10px] font-semibold transition-all disabled:opacity-50 ${
+                          isDisabled
+                            ? "border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/[0.1]"
+                            : "border-white/[0.06] text-stone-500 hover:border-red-500/25 hover:text-red-400 hover:bg-red-500/[0.06]"
+                        }`}
+                        title={isDisabled ? "Re-enable this user" : "Disable this user"}
+                      >
+                        {isDisabled
+                          ? <><UserCheck className="h-3 w-3" /> Enable</>
+                          : <><UserX className="h-3 w-3" /> Disable</>}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>
