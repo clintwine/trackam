@@ -87,12 +87,10 @@ export const publicHandoverApi = {
   confirm: (body: {
     token: string;
     receiverName: string;
-    receiverGovtId: string;
     receiverPhone?: string;
     receiverActorType: ActorType;
     latitude?: number;
     longitude?: number;
-    bypassReason?: string;
   }) =>
     axios.post<HandoverConfirmation>(`${publicBase()}/api/handover/confirm`, body).then((r) => r.data),
 };
@@ -330,12 +328,10 @@ export const publicBatchApi = {
   confirm: (body: {
     token: string;
     receiverName: string;
-    receiverGovtId: string;
     receiverPhone?: string;
     receiverActorType: ActorType;
     latitude?: number;
     longitude?: number;
-    bypassReason?: string;
   }) =>
     axios.post<BulkHandoverConfirmed>(`${publicBase()}/api/handover/confirm-bulk`, body).then((r) => r.data),
 };

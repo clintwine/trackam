@@ -7,8 +7,6 @@ import {
   type BatchTokenInfo, type BulkHandoverConfirmed,
 } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
-import { IdVerificationInput } from "@/components/id-verification/IdVerificationInput";
-import { getIdSchemeConfig } from "@/lib/idSchemes";
 import { PhoneInput } from "@/components/PhoneInput";
 
 type Phase = "loading" | "token-form" | "batch-form" | "submitting" | "success" | "error";
@@ -26,17 +24,15 @@ export default function ScanPage() {
   const [error, setError] = useState("");          // fatal — invalid/expired link
   const [confirmError, setConfirmError] = useState(""); // inline — fixable validation errors
 
-  // Shared form state
+  // Shared form state — no government ID is ever collected here. The
+  // receiver's identity is bound by their operator's pre-verified rider
+  // record (cross-operator handover) or, for final delivery, by an OTP
+  // sent to the waybill's receiver phone (handled in a separate flow).
   const [receiverName, setReceiverName] = useState("");
-  const [receiverGovtId, setReceiverGovtId] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [receiverActorType, setReceiverActorType] = useState<ActorType>("ACTOR_COURIER");
   const [gpsStatus, setGpsStatus] = useState<"idle" | "fetching" | "ok" | "denied">("idle");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-
-  // ID verification bypass (when provider is unavailable)
-  const [needsBypass, setNeedsBypass] = useState(false);
-  const [bypassReason, setBypassReason] = useState("");
 
   useEffect(() => {
     if (!token && !waybillId) {
@@ -81,36 +77,23 @@ export default function ScanPage() {
     );
   }
 
-  function isIdProviderDown(err: unknown): boolean {
-    const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
-    return resp?.status === 503 && (resp?.data?.message?.includes("verification provider") ?? false);
-  }
-
   async function handleConfirmSingle(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
-    if (needsBypass && bypassReason.trim().length < 10) return;
     setConfirmError("");
     setPhase("submitting");
     try {
       const result = await publicHandoverApi.confirm({
         token,
         receiverName,
-        receiverGovtId,
         receiverPhone: receiverPhone || undefined,
         receiverActorType,
         latitude: coords?.lat,
         longitude: coords?.lng,
-        bypassReason: needsBypass ? bypassReason.trim() : undefined,
       });
       setConfirmation(result);
       setPhase("success");
     } catch (err: unknown) {
-      if (isIdProviderDown(err) && !needsBypass) {
-        setNeedsBypass(true);
-        setPhase("token-form");
-        return;
-      }
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Handover failed. Please try again.";
       setConfirmError(msg);
       setPhase("token-form");
@@ -120,35 +103,25 @@ export default function ScanPage() {
   async function handleConfirmBatch(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
-    if (needsBypass && bypassReason.trim().length < 10) return;
     setConfirmError("");
     setPhase("submitting");
     try {
       const result = await publicBatchApi.confirm({
         token,
         receiverName,
-        receiverGovtId,
         receiverPhone: receiverPhone || undefined,
         receiverActorType,
         latitude: coords?.lat,
         longitude: coords?.lng,
-        bypassReason: needsBypass ? bypassReason.trim() : undefined,
       });
       setConfirmation(result);
       setPhase("success");
     } catch (err: unknown) {
-      if (isIdProviderDown(err) && !needsBypass) {
-        setNeedsBypass(true);
-        setPhase("batch-form");
-        return;
-      }
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Handover failed. Please try again.";
       setConfirmError(msg);
       setPhase("batch-form");
     }
   }
-
-  const idScheme = tokenInfo?.idScheme ?? "ng:bvn";
 
   return (
     <div className="min-h-screen bg-[#060d18] text-white flex flex-col">
@@ -195,13 +168,9 @@ export default function ScanPage() {
 
             <ReceiverFields
               receiverName={receiverName} setReceiverName={setReceiverName}
-              receiverGovtId={receiverGovtId} setReceiverGovtId={setReceiverGovtId}
               receiverPhone={receiverPhone} setReceiverPhone={setReceiverPhone}
-              idScheme={idScheme}
               gpsStatus={gpsStatus} coords={coords} requestGps={requestGps}
             />
-
-            {needsBypass && <BypassReasonField value={bypassReason} onChange={setBypassReason} />}
 
             {confirmError && (
               <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
@@ -210,7 +179,7 @@ export default function ScanPage() {
               </div>
             )}
 
-            <button type="submit" disabled={needsBypass && bypassReason.trim().length < 10} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50">
+            <button type="submit" className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800">
               <ShieldCheck className="h-4 w-4" /> Confirm handover
             </button>
           </form>
@@ -255,13 +224,9 @@ export default function ScanPage() {
 
             <ReceiverFields
               receiverName={receiverName} setReceiverName={setReceiverName}
-              receiverGovtId={receiverGovtId} setReceiverGovtId={setReceiverGovtId}
               receiverPhone={receiverPhone} setReceiverPhone={setReceiverPhone}
-              idScheme={idScheme}
               gpsStatus={gpsStatus} coords={coords} requestGps={requestGps}
             />
-
-            {needsBypass && <BypassReasonField value={bypassReason} onChange={setBypassReason} />}
 
             {confirmError && (
               <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
@@ -270,7 +235,7 @@ export default function ScanPage() {
               </div>
             )}
 
-            <button type="submit" disabled={needsBypass && bypassReason.trim().length < 10} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50">
+            <button type="submit" className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800">
               <ShieldCheck className="h-4 w-4" /> Confirm receipt of all {batchInfo.shipments.length} shipments
             </button>
           </form>
@@ -343,39 +308,13 @@ export default function ScanPage() {
   );
 }
 
-function BypassReasonField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 space-y-2">
-      <p className="text-xs font-semibold text-amber-300">Identity verification is temporarily unavailable</p>
-      <p className="text-[11px] text-amber-400">
-        The BVN/ID verification service is currently down. You can still proceed by providing a reason for the override below. The operator accepts liability for this handover.
-      </p>
-      <textarea
-        required
-        minLength={10}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="e.g. Receiver verified in person with physical ID card"
-        className="w-full rounded-md border border-amber-500/30 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 min-h-[60px]"
-      />
-      {value.trim().length > 0 && value.trim().length < 10 && (
-        <p className="text-[11px] text-amber-400/80">Reason must be at least 10 characters</p>
-      )}
-    </div>
-  );
-}
-
 function ReceiverFields({
   receiverName, setReceiverName,
-  receiverGovtId, setReceiverGovtId,
   receiverPhone, setReceiverPhone,
-  idScheme,
   gpsStatus, coords, requestGps,
 }: {
   receiverName: string; setReceiverName: (v: string) => void;
-  receiverGovtId: string; setReceiverGovtId: (v: string) => void;
   receiverPhone: string; setReceiverPhone: (v: string) => void;
-  idScheme: string;
   gpsStatus: "idle" | "fetching" | "ok" | "denied";
   coords: { lat: number; lng: number } | null;
   requestGps: () => void;
@@ -391,23 +330,21 @@ function ReceiverFields({
           placeholder="e.g. Chukwuemeka Obi"
           className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] px-3 h-10 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
         />
+        <p className="text-[10px] text-stone-500 mt-1">
+          Your identity was verified during onboarding with your logistics company — no ID is collected at handover.
+        </p>
       </div>
 
-      <IdVerificationInput
-        config={getIdSchemeConfig(idScheme?.split(":")[0] ?? "ng")}
-        value={receiverGovtId}
-        onChange={setReceiverGovtId}
-        required
-      />
-
       <div>
-        <label className="text-xs font-medium text-white block mb-1.5">Phone number <span className="text-stone-400">(optional)</span></label>
+        <label className="text-xs font-medium text-white block mb-1.5">Phone number <span className="text-stone-400">(recommended)</span></label>
         <PhoneInput
           value={receiverPhone}
           onChange={setReceiverPhone}
-          country={idScheme?.split(":")[0] ?? "ng"}
           size="md"
         />
+        <p className="text-[10px] text-stone-500 mt-1">
+          Used so the operator can reach you if there's an issue with the handover.
+        </p>
       </div>
 
       <div>
