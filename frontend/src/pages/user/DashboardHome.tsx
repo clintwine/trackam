@@ -50,10 +50,10 @@ export default function DashboardHome() {
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] p-4 flex items-start gap-3">
           <Clock className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-blue-300">Your OLI Switch account is pending approval</p>
+            <p className="text-sm font-semibold text-blue-300">Your organisation isn't connected to OLI Switch yet</p>
             <p className="text-xs text-blue-400/70 mt-0.5">
-              You'll receive an API key by email once your account is activated. Paste it in{" "}
-              <Link to="/dashboard/settings" className="underline hover:text-blue-300 transition-colors">Settings</Link> to start dispatching.
+              Ask your admin to set up the API key in the{" "}
+              <Link to="/admin/dashboard/oli" className="underline hover:text-blue-300 transition-colors">admin dashboard</Link> to start dispatching.
             </p>
           </div>
         </div>

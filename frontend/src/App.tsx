@@ -32,7 +32,6 @@ import DispatchRunsPage from "@/pages/logistics/DispatchRunsPage";
 import DispatchRunDetailPage from "@/pages/logistics/DispatchRunDetailPage";
 import RidersPage from "@/pages/logistics/RidersPage";
 import RoutesPage from "@/pages/logistics/RoutesPage";
-import SettingsPage from "@/pages/logistics/SettingsPage";
 import ErrorPage from "@/components/common/ErrorPage";
 import { adminLoader, requireAuth } from "./scripts/auth.loader";
 
@@ -68,7 +67,6 @@ const router = createBrowserRouter([
       { path: "runs/:id", element: <DispatchRunDetailPage /> },
       { path: "riders", element: <RidersPage /> },
       { path: "routes", element: <RoutesPage /> },
-      { path: "settings", element: <SettingsPage /> },
       { path: "account", element: <AccountPage /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "security", element: <SecurityPage /> },
