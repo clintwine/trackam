@@ -9,7 +9,6 @@ import {
   Package,
   Users,
   MapPin,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -18,30 +17,52 @@ import {
   X,
   FileText,
   Route,
+  User,
+  ShieldCheck,
+  Bell,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import WalletWidget from "./WalletWidget";
 import UpdateAvailable from "./UpdateAvailable";
 
-const NAV_ITEMS = [
-  { to: "/dashboard",           label: "Overview",  icon: LayoutDashboard, end: true },
-  { to: "/dashboard/waybills",  label: "Waybills",  icon: FileText,        end: false },
-  { to: "/dashboard/runs",      label: "Runs",      icon: Route,           end: false },
-  { to: "/dashboard/shipments", label: "Shipments", icon: Package,         end: false },
-  { to: "/dashboard/riders",    label: "Riders",    icon: Users,           end: false },
-  { to: "/dashboard/routes",    label: "Routes",    icon: MapPin,          end: false },
-  { to: "/dashboard/settings",  label: "Settings",  icon: Settings,        end: false },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end: boolean;
+};
+
+const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
+  {
+    items: [
+      { to: "/dashboard",           label: "Overview",  icon: LayoutDashboard, end: true  },
+      { to: "/dashboard/waybills",  label: "Waybills",  icon: FileText,        end: false },
+      { to: "/dashboard/runs",      label: "Runs",      icon: Route,           end: false },
+      { to: "/dashboard/shipments", label: "Shipments", icon: Package,         end: false },
+      { to: "/dashboard/riders",    label: "Riders",    icon: Users,           end: false },
+      { to: "/dashboard/routes",    label: "Routes",    icon: MapPin,          end: false },
+    ],
+  },
+  {
+    label: "Personal",
+    items: [
+      { to: "/dashboard/account",       label: "Account",       icon: User,        end: false },
+      { to: "/dashboard/security",      label: "Security",      icon: ShieldCheck, end: false },
+      { to: "/dashboard/notifications", label: "Notifications", icon: Bell,        end: false },
+    ],
+  },
 ];
 
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
-  "/dashboard":           { title: "Overview",       description: "Your logistics at a glance." },
-  "/dashboard/waybills":  { title: "Waybills",       description: "Claim OLI waybills and join custody legs." },
-  "/dashboard/runs":      { title: "Dispatch Runs",  description: "Group waybills onto vehicle trips and manage departures." },
-  "/dashboard/shipments": { title: "Shipments",      description: "Individual waybill legs and their custody status." },
-  "/dashboard/riders":    { title: "Riders",         description: "Manage your logistics vendors." },
-  "/dashboard/routes":    { title: "Routes",         description: "Set up your standard delivery lanes." },
-  "/dashboard/settings":  { title: "Settings",       description: "Fuel rates, business info, and preferences." },
-  "/dashboard/account":   { title: "Account",        description: "Manage your profile." },
+  "/dashboard":                    { title: "Overview",       description: "Your logistics at a glance." },
+  "/dashboard/waybills":           { title: "Waybills",       description: "Claim OLI waybills and join custody legs." },
+  "/dashboard/runs":               { title: "Dispatch Runs",  description: "Group waybills onto vehicle trips and manage departures." },
+  "/dashboard/shipments":          { title: "Shipments",      description: "Individual waybill legs and their custody status." },
+  "/dashboard/riders":             { title: "Riders",         description: "Manage your logistics vendors." },
+  "/dashboard/routes":             { title: "Routes",         description: "Set up your standard delivery lanes." },
+  "/dashboard/account":            { title: "Account",        description: "Your display name, email, and profile photo." },
+  "/dashboard/security":           { title: "Security",       description: "Password, sessions, and registered devices." },
+  "/dashboard/notifications":      { title: "Notifications",  description: "How and when you'd like to be notified." },
 };
 
 function SidebarContent({
@@ -85,40 +106,61 @@ function SidebarContent({
       </a>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={onNavClick}
-            className={({ isActive }) =>
-              [
-                "flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all duration-150",
-                collapsed ? "h-9 w-full justify-center px-0" : "h-9 px-3",
-                isActive
-                  ? "bg-orange-500/[0.12] text-orange-400 shadow-sm shadow-orange-500/5"
-                  : "text-stone-500 hover:bg-white/[0.04] hover:text-stone-300",
-              ].join(" ")
-            }
-            title={collapsed ? label : undefined}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
+      <nav className="flex-1 py-4 px-2 space-y-3 overflow-y-auto">
+        {NAV_GROUPS.map((group, groupIdx) => (
+          <div key={groupIdx} className="space-y-0.5">
             <AnimatePresence initial={false}>
-              {!collapsed && (
-                <motion.span
-                  key={`label-${to}`}
+              {!collapsed && group.label && (
+                <motion.div
+                  key={`group-${groupIdx}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.12 }}
-                  className="whitespace-nowrap"
+                  className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-stone-600"
                 >
-                  {label}
-                </motion.span>
+                  {group.label}
+                </motion.div>
               )}
             </AnimatePresence>
-          </NavLink>
+            {collapsed && group.label && groupIdx > 0 && (
+              <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+            )}
+            {group.items.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                onClick={onNavClick}
+                className={({ isActive }) =>
+                  [
+                    "flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all duration-150",
+                    collapsed ? "h-9 w-full justify-center px-0" : "h-9 px-3",
+                    isActive
+                      ? "bg-orange-500/[0.12] text-orange-400 shadow-sm shadow-orange-500/5"
+                      : "text-stone-500 hover:bg-white/[0.04] hover:text-stone-300",
+                  ].join(" ")
+                }
+                title={collapsed ? label : undefined}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <AnimatePresence initial={false}>
+                  {!collapsed && (
+                    <motion.span
+                      key={`label-${to}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.12 }}
+                      className="whitespace-nowrap"
+                    >
+                      {label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
 
