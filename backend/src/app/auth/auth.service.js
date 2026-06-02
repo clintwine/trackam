@@ -86,14 +86,17 @@ async function signup({ email, password, profile = {} }) {
   const uid = uuidv4();
   const passwordHash = await bcrypt.hash(password, 12);
 
-  // Auto-promote the first user on a fresh instance to super_admin + admin.
+  // Auto-promote the first user on a fresh instance to owner.
   // This is the commercial onboarding path: founder deploys Trackam, signs up,
   // and immediately gets full control. Also future-proofs multi-tenant where
-  // each new org's first signup becomes the org admin.
+  // each new org's first signup becomes the org owner.
+  // Excludes synthetic system users (id wrapped in double underscores, e.g. '__org__').
   let roles = profile.roles || [];
   try {
     const { query: dbQuery } = require("../../core/db/postgres");
-    const countResult = await dbQuery("SELECT COUNT(*)::int AS cnt FROM users");
+    const countResult = await dbQuery(
+      "SELECT COUNT(*)::int AS cnt FROM users WHERE id NOT LIKE '\\_\\_%\\_\\_' ESCAPE '\\'"
+    );
     if (Number(countResult.rows[0]?.cnt) === 0) {
       roles = ["owner"];
     }
