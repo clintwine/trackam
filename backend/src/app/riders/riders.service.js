@@ -1,5 +1,6 @@
 const repo = require("./riders.repository");
 const oliClient = require("../oli/oli.client");
+const networkRiders = require("../oli/oli.networkRiders");
 
 const VALID_ID_TYPES = ["nin", "voters_card", "passport", "drivers_license"];
 
@@ -81,12 +82,16 @@ async function createRider(userId, body) {
   validateIdInput({ govtIdType, govtIdNumber, govtIdPhoto });
 
   try {
-    return await repo.create({
+    const created = await repo.create({
       userId, name, phone,
       email: String(email).trim().toLowerCase(),
       vehicleType, cityCoverage, baseFee,
       govtIdType, govtIdNumber, govtIdPhoto,
     });
+    // Best-effort: push snapshot to OLI Switch's network-rider index so
+    // cross-operator handovers can resolve this rider's phone.
+    networkRiders.sync(userId, created).catch(() => {});
+    return created;
   } catch (err) {
     throw mapUniqueViolation(err);
   }
@@ -127,6 +132,10 @@ async function updateRider(id, userId, body) {
     });
   }
 
+  // Same best-effort push — if phone, name, or ID changed, the network
+  // index needs the new snapshot.
+  networkRiders.sync(userId, updated).catch(() => {});
+
   return updated;
 }
 
@@ -141,7 +150,10 @@ async function verifyRider(id, userId, verifiedBy) {
   if (rider.govtIdVerifiedAt) {
     return rider; // idempotent
   }
-  return repo.recordVerification(id, userId, { verifiedBy, decision: "approve" });
+  const verified = await repo.recordVerification(id, userId, { verifiedBy, decision: "approve" });
+  // Push the now-verified snapshot so the network sees the state change.
+  networkRiders.sync(userId, verified).catch(() => {});
+  return verified;
 }
 
 async function rejectRider(id, userId, verifiedBy, rejectionReason) {
@@ -159,14 +171,22 @@ async function rejectRider(id, userId, verifiedBy, rejectionReason) {
       { status: 400, field: "rejectionReason" }
     );
   }
-  return repo.recordVerification(id, userId, {
+  const rejected = await repo.recordVerification(id, userId, {
     verifiedBy, decision: "reject", rejectionReason: reason,
   });
+  // Push the rejected state so the network won't accept this rider's phone
+  // for handovers until they re-submit.
+  networkRiders.sync(userId, rejected).catch(() => {});
+  return rejected;
 }
 
 async function deactivateRider(id, userId) {
   await getRider(id, userId);
-  return repo.deactivate(id, userId);
+  const deactivated = await repo.deactivate(id, userId);
+  // Remove from the network index so a deactivated rider can't keep
+  // joining custody legs on other operators.
+  networkRiders.remove(userId, id).catch(() => {});
+  return deactivated;
 }
 
 module.exports = {
