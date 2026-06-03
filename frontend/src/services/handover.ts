@@ -80,21 +80,49 @@ function publicBase() {
   return cfg?.VITE_API_URL || import.meta.env.VITE_API_URL || "";
 }
 
+export interface DeliveryOtpRequested {
+  sent: boolean;
+  channel: "sms" | "email" | "none";
+  maskedPhone: string;
+  // Receiver name + goods description come from the canonical waybill record
+  // so authenticated drivers/staff can display "Delivering to: X" inline
+  // without an extra waybill fetch. Caller passes receiverName back at confirm.
+  receiverName: string | null;
+  goodsDescription: string | null;
+  expiresInSec: number;
+}
+
 export const publicHandoverApi = {
   getTokenInfo: (token: string) =>
     axios.get<TokenInfo>(`${publicBase()}/api/handover/token/${token}`).then((r) => r.data),
 
+  // Sends a 6-digit code to the receiver's phone as recorded on the waybill.
+  // Only valid for ACTOR_RECEIVER tokens (final-mile delivery).
+  requestDeliveryOtp: (token: string) =>
+    axios.post<DeliveryOtpRequested>(`${publicBase()}/api/handover/request-delivery-otp`, { token })
+      .then((r) => r.data),
+
   confirm: (body: {
     token: string;
     receiverName: string;
-    receiverGovtId: string;
     receiverPhone?: string;
     receiverActorType: ActorType;
     latitude?: number;
     longitude?: number;
-    bypassReason?: string;
+    otp?: string;
   }) =>
     axios.post<HandoverConfirmation>(`${publicBase()}/api/handover/confirm`, body).then((r) => r.data),
+
+  // Receiving-rider variant: no form. OLI Switch resolves the rider via the
+  // network_riders index keyed by the phone in their phoneToken. Used by
+  // /handover/driver?join=<token>.
+  confirmAsRider: (body: {
+    token: string;
+    phoneToken: string;
+    latitude?: number;
+    longitude?: number;
+  }) =>
+    axios.post<HandoverConfirmation>(`${publicBase()}/api/handover/confirm-as-rider`, body).then((r) => r.data),
 };
 
 export const publicWaybillApi = {
@@ -330,12 +358,10 @@ export const publicBatchApi = {
   confirm: (body: {
     token: string;
     receiverName: string;
-    receiverGovtId: string;
     receiverPhone?: string;
     receiverActorType: ActorType;
     latitude?: number;
     longitude?: number;
-    bypassReason?: string;
   }) =>
     axios.post<BulkHandoverConfirmed>(`${publicBase()}/api/handover/confirm-bulk`, body).then((r) => r.data),
 };

@@ -16,13 +16,24 @@ const OLI_SWITCH_URL  = process.env.OLI_SWITCH_URL || "http://localhost:5000";
 const OLI_API_KEY_ENV = process.env.OLI_API_KEY    || "";
 
 async function resolveApiKey(userId) {
+  // 1. Org-level key (commercial mode) — shared by all users on this instance
+  try {
+    const orgKey = await oliAccountRepo.getOrgApiKey();
+    if (orgKey) return orgKey;
+  } catch { /* fall through */ }
+
+  // 2. Env var
+  if (OLI_API_KEY_ENV) return OLI_API_KEY_ENV;
+
+  // 3. Per-user key (legacy / open-source)
   if (userId) {
     try {
       const account = await oliAccountRepo.findByUserId(userId);
       if (account?.oli_api_key) return account.oli_api_key;
     } catch { /* fall through */ }
   }
-  return OLI_API_KEY_ENV || null;
+
+  return null;
 }
 
 async function request(userId, method, path, body) {
@@ -57,5 +68,7 @@ async function request(userId, method, path, body) {
 
 module.exports = {
   /** POST helper. Returns the parsed body or { skipped: true } if no API key. */
-  post: (userId, path, body) => request(userId, "POST", path, body),
+  post: (userId, path, body)  => request(userId, "POST",   path, body),
+  /** DELETE helper. Same skipped semantics. */
+  del:  (userId, path)        => request(userId, "DELETE", path, null),
 };

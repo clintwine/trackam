@@ -33,10 +33,11 @@ type NavItem = {
 const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
   {
     items: [
-      { to: "/admin/dashboard",        label: "Overview", icon: LayoutDashboard, end: true  },
-      { to: "/admin/dashboard/users",  label: "Users",    icon: Users,           end: false },
-      { to: "/admin/dashboard/roles",  label: "Roles",    icon: ShieldCheck,     end: false },
-      { to: "/admin/dashboard/events", label: "Events",   icon: Activity,        end: false },
+      { to: "/admin/dashboard",                       label: "Overview",         icon: LayoutDashboard, end: true  },
+      { to: "/admin/dashboard/users",                 label: "Users",            icon: Users,           end: false },
+      { to: "/admin/dashboard/roles",                 label: "Roles",            icon: ShieldCheck,     end: false },
+      { to: "/admin/dashboard/events",                label: "Events",           icon: Activity,        end: false },
+      { to: "/admin/dashboard/identity-verifications",label: "Identity IDs",     icon: ShieldCheck,     end: false },
     ],
   },
   {
@@ -54,6 +55,7 @@ const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   "/admin/dashboard/users":    { title: "Users",          description: "Assign roles and manage operator access." },
   "/admin/dashboard/roles":    { title: "Roles",          description: "Available RBAC roles and their permissions." },
   "/admin/dashboard/events":   { title: "Events",         description: "Recent system events." },
+  "/admin/dashboard/identity-verifications": { title: "Identity Verifications", description: "Approve or reject IDs submitted by riders and staff during onboarding." },
   "/admin/dashboard/settings": { title: "Organisation Settings", description: "Business name, fuel pricing, and alerts — shared across all operators." },
   "/admin/dashboard/oli":      { title: "Network Connection",    description: "Connect your organisation to the OLI custody network." },
   "/admin/dashboard/wallet":   { title: "Organisation Wallet",   description: "Credits fund handovers, claims, and custody operations on the OLI network." },

@@ -3,10 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import {
   Loader2, ShieldCheck, MapPin, ArrowRight, CheckCircle2,
   Package, Phone, Hash, ChevronRight, Layers, Truck, Navigation, LogOut,
+  AlertCircle, Send,
 } from "lucide-react";
 import { formatNaira } from "@/lib/format";
 import { QRCodeSVG } from "qrcode.react";
-import { custodianApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem, type CustodySessionSummary } from "@/services/handover";
+import { custodianApi, publicHandoverApi, publicWaybillApi, ACTOR_LABELS, type ActorType, type RunShipmentItem, type CustodySessionSummary, type TokenInfo, type HandoverConfirmation } from "@/services/handover";
 import { PublicNav } from "@/components/layout/PublicNav";
 import { PhoneInput } from "@/components/PhoneInput";
 import { savePhoneToken, getPhoneToken, clearPhoneToken } from "@/lib/custodianPhoneToken";
@@ -22,6 +23,7 @@ type Phase =
   | "run-custody"    // run session — list of remaining shipments
   | "actor-select"
   | "qr"
+  | "delivery-otp"   // final-mile delivery — OTP to receiver phone on waybill
   | "success"
   | "error";
 
@@ -30,9 +32,31 @@ const HANDOVER_ACTOR_OPTIONS: ActorType[] = ["ACTOR_COURIER", "ACTOR_HUB", "ACTO
 export default function DriverHandoverPage() {
   const [params] = useSearchParams();
   const sessionId = params.get("ref") || "";
+  // ?join=<handoverToken> — a different driver's handover QR pointing here.
+  // We surface a banner once the rider is authenticated and confirm via
+  // /api/handover/confirm-as-rider (no form, identity from network_riders).
+  const joinToken = params.get("join") || "";
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [error, setError] = useState("");
+
+  // Pending receiving-rider join state
+  const [joinTokenInfo, setJoinTokenInfo] = useState<TokenInfo | null>(null);
+  const [joinSubmitting, setJoinSubmitting] = useState(false);
+  const [joinError, setJoinError] = useState("");
+  const [joinSuccess, setJoinSuccess] = useState<HandoverConfirmation | null>(null);
+
+  // GPS — auto-capture once when the page mounts so it's available for
+  // any handover the rider does on this page (join, delivery OTP, etc.).
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => { /* user denied or timeout — proceed without coords */ },
+      { timeout: 8000, enableHighAccuracy: false }
+    );
+  }, []);
 
   // OTP flow
   const [phone, setPhone] = useState("");
@@ -84,11 +108,83 @@ export default function DriverHandoverPage() {
   const [qrError, setQrError] = useState("");
   const [bulkMode, setBulkMode] = useState(false);
 
+  // Final-mile delivery OTP state — used when handing off directly to the
+  // household receiver. The driver fires the OTP, the customer reads it
+  // off their phone, the driver types it. No QR scan involved.
+  const [otpRequesting, setOtpRequesting] = useState(false);
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpMaskedPhone, setOtpMaskedPhone] = useState("");
+  const [otpChannel, setOtpChannel] = useState<"sms" | "email" | "none">("none");
+  const [otpReceiverName, setOtpReceiverName] = useState<string | null>(null);
+  const [otpGoodsDescription, setOtpGoodsDescription] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
+
+  // Route the QR target based on who's receiving.
+  // - ACTOR_HUB (staff at next operator) → /join, scanner is in their dashboard
+  // - ACTOR_COURIER (next rider) → /handover/driver?join=… so they can phone-OTP
+  //   into their own custody session and the system derives identity from
+  //   their pre-verified rider record. No form, no manual ID entry.
+  // - ACTOR_RECEIVER never reaches here (we route to delivery-otp first).
+  // - Bulk handovers still use the public /scan flow.
   const scanUrl = handoverToken
-    ? (receiverActorType === "ACTOR_HUB" && !bulkMode)
-      ? `${window.location.origin}/join?token=${handoverToken}`
-      : `${window.location.origin}/scan?token=${handoverToken}`
+    ? bulkMode
+      ? `${window.location.origin}/scan?token=${handoverToken}`
+      : receiverActorType === "ACTOR_HUB"
+        ? `${window.location.origin}/join?token=${handoverToken}`
+        : receiverActorType === "ACTOR_COURIER"
+          ? `${window.location.origin}/handover/driver?join=${handoverToken}`
+          : `${window.location.origin}/scan?token=${handoverToken}`
     : null;
+
+  // Independent effect: fetch the join token's preview info as soon as the
+  // page mounts so we can show the rider what shipment they're about to take.
+  // The actual confirm happens once the rider authenticates (has a phone token).
+  useEffect(() => {
+    if (!joinToken) return;
+    publicHandoverApi.getTokenInfo(joinToken)
+      .then((info) => setJoinTokenInfo(info))
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "This join link is invalid or expired.";
+        setJoinError(msg);
+      });
+  }, [joinToken]);
+
+  async function handleConfirmAsRider() {
+    if (!joinToken) return;
+    const phoneTok = getPhoneToken();
+    if (!phoneTok) {
+      setJoinError("Sign in with your phone first to join this leg.");
+      return;
+    }
+    setJoinSubmitting(true);
+    setJoinError("");
+    try {
+      const result = await publicHandoverApi.confirmAsRider({
+        token: joinToken,
+        phoneToken: phoneTok,
+        latitude:  gpsCoords?.lat,
+        longitude: gpsCoords?.lng,
+      });
+      setJoinSuccess(result);
+      // After a successful join, refresh the custody picker so the new
+      // shipment shows up in the rider's active sessions.
+      if (custodianToken) {
+        await refreshRunCustody().catch(() => {});
+      } else {
+        // Force a re-resolve from the saved phone token.
+        const sessionsResp = await custodianApi.sessionsByPhoneToken(phoneTok).catch(() => null);
+        if (sessionsResp?.sessions) setDiscoveredSessions(sessionsResp.sessions);
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || "Could not join the leg. Make sure your operator has verified your ID.";
+      setJoinError(msg);
+    } finally {
+      setJoinSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     // Legacy SMS-link path (?ref=<sessionId>) — always asks for phone+OTP for
@@ -238,7 +334,20 @@ export default function DriverHandoverPage() {
       setExpiresAt(result.expiresAt);
       const secs = Math.floor((new Date(result.expiresAt).getTime() - Date.now()) / 1000);
       setSecondsLeft(secs);
-      setPhase("qr");
+
+      // For final-mile delivery (single shipment to household), skip the QR
+      // scan altogether. Send the OTP to the receiver phone on the waybill;
+      // the driver enters the code the customer reads aloud.
+      if (receiverActorType === "ACTOR_RECEIVER" && !bulkMode) {
+        setOtpRequested(false);
+        setOtpCode("");
+        setOtpError("");
+        setPhase("delivery-otp");
+        // Auto-fire the OTP request — saves the driver a tap.
+        await sendDeliveryOtp(result.token);
+      } else {
+        setPhase("qr");
+      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -246,6 +355,63 @@ export default function DriverHandoverPage() {
       setQrError(msg);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function sendDeliveryOtp(token: string) {
+    setOtpRequesting(true);
+    setOtpError("");
+    try {
+      const result = await publicHandoverApi.requestDeliveryOtp(token);
+      if (!result.sent) {
+        setOtpError("Could not send the code. Check the phone number on the waybill is correct.");
+        return;
+      }
+      setOtpMaskedPhone(result.maskedPhone);
+      setOtpChannel(result.channel);
+      setOtpReceiverName(result.receiverName);
+      setOtpGoodsDescription(result.goodsDescription);
+      setOtpRequested(true);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || "Could not send the code. Try again.";
+      setOtpError(msg);
+    } finally {
+      setOtpRequesting(false);
+    }
+  }
+
+  async function handleConfirmDelivery(e: React.FormEvent) {
+    e.preventDefault();
+    if (!handoverToken) return;
+    if (otpCode.trim().length < 4) {
+      setOtpError("Enter the 6-digit code the customer received.");
+      return;
+    }
+    setOtpSubmitting(true);
+    setOtpError("");
+    try {
+      await publicHandoverApi.confirm({
+        token: handoverToken,
+        receiverName: otpReceiverName || "Recipient",
+        receiverActorType: "ACTOR_RECEIVER",
+        otp: otpCode.trim(),
+        latitude:  gpsCoords?.lat,
+        longitude: gpsCoords?.lng,
+      });
+      setConfirmed(true);
+      if (custody?.mode === "run") {
+        // Stay in run flow — refreshRunCustody will advance the list
+        setPhase("success");
+      } else {
+        setPhase("success");
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || "Could not confirm delivery. Check the code and try again.";
+      setOtpError(msg);
+    } finally {
+      setOtpSubmitting(false);
     }
   }
 
@@ -276,6 +442,72 @@ export default function DriverHandoverPage() {
     <div className="min-h-screen bg-[#060d18] text-white flex flex-col">
       <PublicNav />
       <main className="flex-1 flex flex-col px-4 pt-24 pb-12 max-w-md mx-auto w-full">
+
+        {/* Pending join-leg banner — visible when /handover/driver?join=<token>
+            is the URL. After the rider authenticates, the Accept button
+            confirms the handover with their session-bound identity. */}
+        {joinToken && !joinSuccess && (
+          <div className="mb-5 rounded-xl border border-purple-500/25 bg-purple-500/[0.08] p-4 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <Package className="h-4 w-4 text-purple-300 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-purple-200">A handover is waiting for you</p>
+                {joinTokenInfo ? (
+                  <>
+                    <p className="text-[11px] text-purple-300/80 mt-0.5 truncate">
+                      {joinTokenInfo.shipment.goodsDescription}
+                    </p>
+                    <p className="text-[10px] text-purple-300/60 flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-2.5 w-2.5 shrink-0" />
+                      {joinTokenInfo.shipment.pickupLocation} → {joinTokenInfo.shipment.deliveryLocation}
+                    </p>
+                    {joinTokenInfo.giverName && (
+                      <p className="text-[10px] text-purple-300/60 mt-0.5">
+                        From: <span className="text-purple-200">{joinTokenInfo.giverName}</span>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[11px] text-purple-300/70 mt-0.5">Loading details…</p>
+                )}
+              </div>
+            </div>
+            {joinError && (
+              <p className="text-[11px] text-red-300 flex items-start gap-1.5">
+                <AlertCircle className="h-3 w-3 shrink-0 mt-0.5" />{joinError}
+              </p>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleConfirmAsRider}
+                disabled={joinSubmitting || !joinTokenInfo || !getPhoneToken()}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-purple-700 hover:bg-purple-800 text-white h-10 text-xs font-semibold disabled:opacity-60 transition-colors"
+                title={!getPhoneToken() ? "Sign in with your phone first" : undefined}
+              >
+                {joinSubmitting
+                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Joining…</>
+                  : <><ShieldCheck className="h-3.5 w-3.5" /> Accept custody</>}
+              </button>
+            </div>
+            {!getPhoneToken() && (
+              <p className="text-[10px] text-purple-300/60 text-center">
+                Sign in with your phone below to enable accept.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Confirmation toast after accept */}
+        {joinSuccess && (
+          <div className="mb-5 rounded-xl border border-green-500/25 bg-green-500/[0.08] p-4 flex items-center gap-2.5">
+            <CheckCircle2 className="h-4 w-4 text-green-300 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-green-200">Custody received</p>
+              <p className="text-[10px] text-green-300/60 truncate font-mono">PoH: {joinSuccess.proofHash?.slice(0, 16)}…</p>
+            </div>
+          </div>
+        )}
 
         {/* Find-my-custody — phase 1: enter phone */}
         {phase === "find-phone" && (
@@ -846,20 +1078,23 @@ export default function DriverHandoverPage() {
               </div>
             )}
           <div className="grid grid-cols-1 gap-2">
-              {HANDOVER_ACTOR_OPTIONS.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setReceiverActorType(type)}
-                  className={[
-                    "rounded-md border px-4 py-3 text-sm font-medium text-left transition-colors",
-                    receiverActorType === type
-                      ? "border-purple-400 bg-purple-500/10 text-purple-300"
-                      : "border-white/[0.06] text-stone-400 hover:border-purple-400/30",
-                  ].join(" ")}
-                >
-                  {ACTOR_LABELS[type]}
-                </button>
-              ))}
+              {HANDOVER_ACTOR_OPTIONS
+                // Final delivery is per-shipment only — hide it in bulk mode.
+                .filter((type) => !(bulkMode && type === "ACTOR_RECEIVER"))
+                .map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setReceiverActorType(type)}
+                    className={[
+                      "rounded-md border px-4 py-3 text-sm font-medium text-left transition-colors",
+                      receiverActorType === type
+                        ? "border-purple-400 bg-purple-500/10 text-purple-300"
+                        : "border-white/[0.06] text-stone-400 hover:border-purple-400/30",
+                    ].join(" ")}
+                  >
+                    {ACTOR_LABELS[type]}
+                  </button>
+                ))}
             </div>
             {qrError && (
               <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
@@ -876,6 +1111,104 @@ export default function DriverHandoverPage() {
               Generate handover QR
             </button>
           </div>
+        )}
+
+        {/* Final-mile delivery OTP — driver enters the code the customer reads aloud */}
+        {phase === "delivery-otp" && (
+          <form onSubmit={handleConfirmDelivery} className="space-y-5">
+            <div>
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="h-9 w-9 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                  <Package className="h-4.5 w-4.5 text-purple-400" />
+                </div>
+                <div>
+                  <h1 className="text-base font-semibold text-white">Delivery confirmation</h1>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Ask the recipient for the code we just sent them.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recipient summary — derived from waybill, not editable */}
+            <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 p-4 space-y-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-purple-300/70 font-semibold">Delivering to</p>
+                <p className="text-sm font-semibold text-white mt-0.5">
+                  {otpReceiverName || "Recipient on waybill"}
+                </p>
+              </div>
+              {otpGoodsDescription && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-purple-300/70 font-semibold">Goods</p>
+                  <p className="text-xs text-purple-100 mt-0.5">{otpGoodsDescription}</p>
+                </div>
+              )}
+            </div>
+
+            {/* OTP send status */}
+            {otpRequesting && !otpRequested ? (
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/[0.06] p-4 flex items-center gap-2.5">
+                <Loader2 className="h-4 w-4 text-orange-400 animate-spin shrink-0" />
+                <p className="text-xs text-orange-200">Sending code to the recipient…</p>
+              </div>
+            ) : otpRequested ? (
+              <div className="rounded-lg border border-green-500/20 bg-green-500/[0.06] p-3">
+                <p className="text-[11px] text-green-300 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  Code sent via {otpChannel === "sms" ? "SMS" : otpChannel === "email" ? "email" : "—"} to{" "}
+                  <span className="font-mono">{otpMaskedPhone}</span>
+                </p>
+              </div>
+            ) : null}
+
+            <div>
+              <label className="text-xs font-medium text-white block mb-1.5">6-digit code <span className="text-red-500">*</span></label>
+              <input
+                required
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus={otpRequested}
+                placeholder="000000"
+                className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] px-3 h-12 text-lg font-mono tracking-widest text-center text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+              />
+              <button
+                type="button"
+                onClick={() => handoverToken && sendDeliveryOtp(handoverToken)}
+                disabled={otpRequesting}
+                className="mt-1.5 text-[11px] text-orange-400 hover:text-orange-300 underline-offset-2 hover:underline disabled:opacity-60 inline-flex items-center gap-1"
+              >
+                {otpRequesting ? <><Loader2 className="h-3 w-3 animate-spin" /> Sending…</> : <><Send className="h-3 w-3" /> Resend code</>}
+              </button>
+            </div>
+
+            {otpError && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
+                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{otpError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={otpSubmitting || !otpRequested || otpCode.trim().length < 4}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-purple-700 text-white h-11 text-sm font-semibold transition-colors hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {otpSubmitting
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Confirming delivery…</>
+                : <><ShieldCheck className="h-4 w-4" /> Confirm delivery</>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setPhase("actor-select"); setHandoverToken(null); }}
+              className="w-full text-xs text-stone-500 underline underline-offset-2 hover:text-stone-300"
+            >
+              Cancel and pick a different actor
+            </button>
+          </form>
         )}
 
         {/* QR code */}
