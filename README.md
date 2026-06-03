@@ -8,6 +8,13 @@ Trackam is the operator-facing layer. The OLI Switch is the private network swit
 
 ## What it does
 
+
+Basically if you run a logistics business in Nigeria, you know the pain. You hand a package to another company's driver and then it's just... trust and prayer. Maybe a phone call. Maybe a WhatsApp message that gets buried.
+
+Trackam fixes that. Every handover gets a QR scan, a proof hash, GPS stamp. The driver doesn't need to install anything just opens a link, verifies with OTP, shows a QR. The person receiving scans it, done. Custody transferred, recorded, visible to everyone involved.
+
+The cool part: each operator runs their own dashboard, but they all connect through a shared layer. So when your driver drops off 15 packages at another company's warehouse, that warehouse joins the custody leg from their own system. One scan, one click.
+
 **Dispatch & shipment management**
 - Create shipments with goods description, pickup/delivery locations, distance, rider assignment, and recipient contact
 - Track each shipment through its lifecycle: `pending → in_transit → handed_over → delivered` (or `failed` / `ghosted` / `disputed`)
